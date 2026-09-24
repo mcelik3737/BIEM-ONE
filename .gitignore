@@ -1,0 +1,62 @@
+node_modules/
+.pnpm-store/
+dist/
+.next/
+coverage/
+.dart_tool/
+build/
+.idea/
+.vscode/
+.env
+.env.local
+apps/api/prisma/dev.db
+apps/api/prisma/dev.db-journal
+
+# Local tool repositories and downloaded reference material (outside the BIEM ONE workspace)
+/agent-skills/
+/ai-website-cloner-template/
+/BIEM-ONE/
+/codex-plugin-cc/
+/codex-plugin-cc-main/
+/superpowers-main/
+/codex-plugin-cc-main.zip
+
+# Local environment files; keep reusable examples
+.env.*
+!.env.example
+!.env.sample
+!.env.template
+.envrc
+
+# Build output, caches, and logs
+out/
+.cache/
+.turbo/
+.vercel/
+__pycache__/
+*.pyc
+*.tsbuildinfo
+*.log
+logs/
+
+# Local databases and database backups (keep schema/migrations)
+*.db
+*.db-*
+*.sqlite
+*.sqlite3
+*.sqlite-*
+*.sqlite3-*
+*.dump
+*.backup
+*.bak
+*.sql.gz
+*.sql.zip
+backups/
+
+# Private keys and local credential stores
+*.pem
+*.key
+*.p12
+*.pfx
+credentials.json
+service-account*.json

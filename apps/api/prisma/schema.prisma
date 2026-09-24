@@ -1,0 +1,244 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum RoleCode {
+  SUPER_ADMIN
+  COMPANY_ADMIN
+  PROJECT_MANAGER
+  FIELD_ENGINEER
+}
+
+enum TaskStatus {
+  TODO
+  IN_PROGRESS
+  BLOCKED
+  DONE
+}
+
+enum TaskPriority {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum NotificationType {
+  INFO
+  ACTION_REQUIRED
+  WARNING
+}
+
+model Company {
+  id        String     @id @default(cuid())
+  name      String
+  slug      String     @unique
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+  users     User[]
+  customers Customer[]
+  projects  Project[]
+}
+
+model User {
+  id            String          @id @default(cuid())
+  companyId     String
+  email         String          @unique
+  passwordHash  String
+  fullName      String
+  isActive      Boolean         @default(true)
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+  company       Company         @relation(fields: [companyId], references: [id])
+  roles         UserRole[]
+  refreshTokens RefreshToken[]
+  tasks         Task[]          @relation("TaskAssignee")
+  notifications Notification[]
+  uploadedFiles FileAsset[]
+  auditLogs     AuditLog[]
+  timelineEvents TimelineEvent[]
+}
+
+model Role {
+  id          String           @id @default(cuid())
+  name        String
+  code        RoleCode         @unique
+  description String?
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+  users       UserRole[]
+  permissions RolePermission[]
+}
+
+model Permission {
+  id          String           @id @default(cuid())
+  name        String
+  code        String           @unique
+  description String?
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+  roles       RolePermission[]
+}
+
+model UserRole {
+  id         String   @id @default(cuid())
+  userId     String
+  roleId     String
+  assignedAt DateTime @default(now())
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role       Role     @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, roleId])
+}
+
+model RolePermission {
+  id           String     @id @default(cuid())
+  roleId       String
+  permissionId String
+  role         Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission   Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@unique([roleId, permissionId])
+}
+
+model RefreshToken {
+  id        String   @id @default(cuid())
+  userId    String
+  tokenHash String
+  expiresAt DateTime
+  revokedAt DateTime?
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Customer {
+  id         String      @id @default(cuid())
+  companyId  String
+  name       String
+  code       String?
+  taxNumber  String?
+  email      String?
+  phone      String?
+  address    String?
+  notes      String?
+  createdAt  DateTime    @default(now())
+  updatedAt  DateTime    @updatedAt
+  company    Company     @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  contacts   Contact[]
+  projects   Project[]
+  files      FileAsset[]
+}
+
+model Contact {
+  id         String   @id @default(cuid())
+  customerId String
+  fullName   String
+  title      String?
+  email      String?
+  phone      String?
+  isPrimary  Boolean  @default(false)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  customer   Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+}
+
+model ProjectStage {
+  id        String    @id @default(cuid())
+  name      String
+  code      String    @unique
+  sortOrder Int
+  isActive  Boolean   @default(true)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  projects  Project[]
+}
+
+model Project {
+  id             String          @id @default(cuid())
+  companyId      String
+  customerId     String
+  stageId        String
+  name           String
+  code           String?
+  description    String?
+  location       String?
+  startDate      DateTime?
+  endDate        DateTime?
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  company        Company         @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  customer       Customer        @relation(fields: [customerId], references: [id], onDelete: Restrict)
+  stage          ProjectStage    @relation(fields: [stageId], references: [id], onDelete: Restrict)
+  tasks          Task[]
+  files          FileAsset[]
+  timelineEvents TimelineEvent[]
+}
+
+model Task {
+  id          String       @id @default(cuid())
+  projectId   String?
+  assigneeId  String?
+  title       String
+  description String?
+  status      TaskStatus   @default(TODO)
+  priority    TaskPriority @default(MEDIUM)
+  dueDate     DateTime?
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  project     Project?     @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  assignee    User?        @relation("TaskAssignee", fields: [assigneeId], references: [id], onDelete: SetNull)
+}
+
+model FileAsset {
+  id           String    @id @default(cuid())
+  projectId    String?
+  customerId   String?
+  uploadedById String?
+  fileName     String
+  mimeType     String
+  storagePath  String
+  sizeBytes    Int
+  createdAt    DateTime  @default(now())
+  project      Project?  @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  customer     Customer? @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  uploadedBy   User?     @relation(fields: [uploadedById], references: [id], onDelete: SetNull)
+}
+
+model Notification {
+  id        String           @id @default(cuid())
+  userId    String
+  title     String
+  body      String
+  kind      NotificationType @default(INFO)
+  isRead    Boolean          @default(false)
+  createdAt DateTime         @default(now())
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model AuditLog {
+  id         String   @id @default(cuid())
+  userId     String?
+  action     String
+  entityType String
+  entityId   String
+  metadata   Json?
+  createdAt  DateTime @default(now())
+  user       User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+}
+
+model TimelineEvent {
+  id         String   @id @default(cuid())
+  projectId  String?
+  actorId    String?
+  eventType  String
+  summary    String
+  details    String?
+  occurredAt DateTime @default(now())
+  project    Project? @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  actor      User?    @relation(fields: [actorId], references: [id], onDelete: SetNull)
+}
