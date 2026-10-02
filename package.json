@@ -9,9 +9,9 @@
     "format": "pnpm -r format",
     "dev:api": "pnpm --filter @biem-one/api start:dev",
     "dev:admin": "pnpm --filter @biem-one/admin dev --port 3001",
-    "db:generate": "pnpm --filter @biem-one/api prisma generate",
-    "db:migrate": "pnpm --filter @biem-one/api prisma migrate dev",
-    "db:seed": "pnpm --filter @biem-one/api prisma db seed",
+    "db:generate": "pnpm --filter @biem-one/api exec prisma generate",
+    "db:migrate": "pnpm --filter @biem-one/api exec prisma migrate dev",
+    "db:seed": "pnpm --filter @biem-one/api exec prisma db seed",
     "test:acceptance": "pnpm --filter @biem-one/api test:acceptance",
     "db:deploy": "pnpm --filter @biem-one/api exec prisma migrate deploy",
     "test:browser": "node tests/browser-smoke.cjs"

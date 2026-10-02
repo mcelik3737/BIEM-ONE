@@ -1,7 +1,7 @@
 name: BIEM usable core
 on:
   push:
-    branches: [main, 'work/**']
+    branches: [main]
   pull_request:
 permissions:
   contents: read
