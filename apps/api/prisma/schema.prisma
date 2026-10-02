@@ -28,6 +28,66 @@ enum TaskPriority {
   CRITICAL
 }
 
+enum WorkPriority {
+  LOW
+  NORMAL
+  HIGH
+  CRITICAL
+}
+
+enum WorkCategory {
+  RADIO_COMMUNICATION
+  RF_COVERAGE_DAS
+  RAIL_SYSTEMS
+  EMERGENCY_COMMUNICATION
+  EV_CHARGING
+  SERVICE_MAINTENANCE
+  OTHER
+}
+
+enum OperationStage {
+  HAZIRLIK
+  SATINALMA
+  IS_PROGRAMI
+  ISG
+  KURULUM_SERVIS
+  TEST
+  SAT_KABUL
+  TESLIM
+  FATURALAMA
+  TAHSILAT
+  KAPANIS_BAKIM
+}
+
+enum BomItemType {
+  URUN
+  MALZEME
+  HIZMET
+  ISCILIK
+  TASERON
+  EKIPMAN
+}
+
+enum ProcurementStatus {
+  PLANLANDI
+  TEKLIF_BEKLENIYOR
+  ONAY_BEKLIYOR
+  SIPARIS_VERILDI
+  KISMI_TESLIM
+  TESLIM_ALINDI
+  IPTAL
+}
+
+enum PurchaseOrderStatus {
+  TASLAK
+  ONAY_BEKLIYOR
+  ONAYLANDI
+  SIPARIS_VERILDI
+  KISMI_TESLIM
+  TESLIM_ALINDI
+  IPTAL
+}
+
 enum NotificationType {
   INFO
   ACTION_REQUIRED
@@ -35,33 +95,41 @@ enum NotificationType {
 }
 
 model Company {
-  id        String     @id @default(cuid())
-  name      String
-  slug      String     @unique
-  createdAt DateTime   @default(now())
-  updatedAt DateTime   @updatedAt
-  users     User[]
-  customers Customer[]
-  projects  Project[]
+  id                    String                 @id @default(cuid())
+  name                  String
+  slug                  String                 @unique
+  createdAt             DateTime               @default(now())
+  updatedAt             DateTime               @updatedAt
+  users                 User[]
+  customers             Customer[]
+  projects              Project[]
+  suppliers             Supplier[]
+  purchaseOrders        PurchaseOrder[]
+  purchaseOrderCounters PurchaseOrderCounter[]
 }
 
 model User {
-  id            String          @id @default(cuid())
-  companyId     String
-  email         String          @unique
-  passwordHash  String
-  fullName      String
-  isActive      Boolean         @default(true)
-  createdAt     DateTime        @default(now())
-  updatedAt     DateTime        @updatedAt
-  company       Company         @relation(fields: [companyId], references: [id])
-  roles         UserRole[]
-  refreshTokens RefreshToken[]
-  tasks         Task[]          @relation("TaskAssignee")
-  notifications Notification[]
-  uploadedFiles FileAsset[]
-  auditLogs     AuditLog[]
-  timelineEvents TimelineEvent[]
+  id                      String                 @id @default(cuid())
+  companyId               String
+  email                   String                 @unique
+  passwordHash            String
+  fullName                String
+  isActive                Boolean                @default(true)
+  createdAt               DateTime               @default(now())
+  updatedAt               DateTime               @updatedAt
+  company                 Company                @relation(fields: [companyId], references: [id])
+  roles                   UserRole[]
+  refreshTokens           RefreshToken[]
+  tasks                   Task[]                 @relation("TaskAssignee")
+  notifications           Notification[]
+  uploadedFiles           FileAsset[]
+  auditLogs               AuditLog[]
+  timelineEvents          TimelineEvent[]
+  ownedProjects           Project[]              @relation("ProjectOwner")
+  completedChecklistItems ProjectChecklistItem[] @relation("ChecklistCompletedBy")
+  managedOperations       ProjectOperation[]     @relation("OperationManager")
+  createdPurchaseOrders   PurchaseOrder[]        @relation("PurchaseOrderCreatedBy")
+  approvedPurchaseOrders  PurchaseOrder[]        @relation("PurchaseOrderApprovedBy")
 }
 
 model Role {
@@ -107,31 +175,35 @@ model RolePermission {
 }
 
 model RefreshToken {
-  id        String   @id @default(cuid())
+  id        String    @id @default(cuid())
   userId    String
   tokenHash String
   expiresAt DateTime
   revokedAt DateTime?
-  createdAt DateTime @default(now())
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime  @default(now())
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model Customer {
-  id         String      @id @default(cuid())
-  companyId  String
-  name       String
-  code       String?
-  taxNumber  String?
-  email      String?
-  phone      String?
-  address    String?
-  notes      String?
-  createdAt  DateTime    @default(now())
-  updatedAt  DateTime    @updatedAt
-  company    Company     @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  contacts   Contact[]
-  projects   Project[]
-  files      FileAsset[]
+  id          String      @id @default(cuid())
+  companyId   String
+  name        String
+  shortName   String?
+  contactName String?
+  code        String?
+  taxOffice   String?
+  taxNumber   String?
+  email       String?
+  phone       String?
+  address     String?
+  notes       String?
+  isActive    Boolean     @default(true)
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  company     Company     @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  contacts    Contact[]
+  projects    Project[]
+  files       FileAsset[]
 }
 
 model Contact {
@@ -159,24 +231,207 @@ model ProjectStage {
 }
 
 model Project {
+  id                   String                 @id @default(cuid())
+  companyId            String
+  customerId           String?
+  ownerId              String?
+  stageId              String
+  name                 String
+  workNumber           String?                @unique
+  code                 String?
+  description          String?
+  location             String?
+  category             WorkCategory?
+  customerContactName  String?
+  customerContactPhone String?
+  customerContactEmail String?
+  nextAction           String?
+  nextActionDate       DateTime?
+  startDate            DateTime?
+  endDate              DateTime?
+  priority             WorkPriority           @default(NORMAL)
+  estimatedValue       Decimal?               @db.Decimal(18, 2)
+  quotedValue          Decimal?               @db.Decimal(18, 2)
+  plannedCost          Decimal?               @db.Decimal(18, 2)
+  currency             String?
+  probabilityPercent   Int?
+  paymentTerms         String?
+  deliveryTerms        String?
+  offerNumber          String?
+  offerRevision        String?
+  offerDate            DateTime?
+  offerValidUntil      DateTime?
+  technicalSummary     String?
+  frequencyBand        String?
+  estimatedQuantity    Int?
+  contractPoReference  String?
+  source               String?
+  dueDate              DateTime?
+  createdAt            DateTime               @default(now())
+  updatedAt            DateTime               @updatedAt
+  company              Company                @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  customer             Customer?              @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  owner                User?                  @relation("ProjectOwner", fields: [ownerId], references: [id], onDelete: SetNull)
+  stage                ProjectStage           @relation(fields: [stageId], references: [id], onDelete: Restrict)
+  tasks                Task[]
+  files                FileAsset[]
+  timelineEvents       TimelineEvent[]
+  checklistItems       ProjectChecklistItem[]
+  operation            ProjectOperation?
+}
+
+model ProjectOperation {
+  id                 String          @id @default(cuid())
+  projectId          String          @unique
+  operationStage     OperationStage  @default(HAZIRLIK)
+  operationManagerId String?
+  plannedStartAt     DateTime?
+  plannedEndAt       DateTime?
+  actualStartAt      DateTime?
+  actualEndAt        DateTime?
+  completionPercent  Int             @default(0)
+  nextAction         String?
+  nextActionDueAt    DateTime?
+  notes              String?
+  createdAt          DateTime        @default(now())
+  updatedAt          DateTime        @updatedAt
+  project            Project         @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  operationManager   User?           @relation("OperationManager", fields: [operationManagerId], references: [id], onDelete: SetNull)
+  bomItems           BomItem[]
+  purchaseOrders     PurchaseOrder[]
+
+  @@index([operationStage])
+  @@index([operationManagerId])
+}
+
+model BomItem {
+  id                 String              @id @default(cuid())
+  projectOperationId String
+  itemType           BomItemType
+  stockCode          String?
+  description        String
+  brand              String?
+  model              String?
+  quantity           Decimal             @db.Decimal(18, 3)
+  unit               String
+  currency           String
+  estimatedUnitCost  Decimal             @default(0) @db.Decimal(18, 2)
+  estimatedTotalCost Decimal             @default(0) @db.Decimal(18, 2)
+  requiredAt         DateTime?
+  procurementStatus  ProcurementStatus   @default(PLANLANDI)
+  technicalNote      String?
+  sortOrder          Int                 @default(0)
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+  projectOperation   ProjectOperation    @relation(fields: [projectOperationId], references: [id], onDelete: Cascade)
+  purchaseOrderItems PurchaseOrderItem[]
+
+  @@index([projectOperationId, sortOrder])
+  @@index([projectOperationId, procurementStatus])
+}
+
+model Supplier {
   id             String          @id @default(cuid())
   companyId      String
-  customerId     String
-  stageId        String
   name           String
-  code           String?
-  description    String?
-  location       String?
-  startDate      DateTime?
-  endDate        DateTime?
+  contactName    String?
+  phone          String?
+  email          String?
+  taxOffice      String?
+  taxNumber      String?
+  address        String?
+  notes          String?
+  isActive       Boolean         @default(true)
   createdAt      DateTime        @default(now())
   updatedAt      DateTime        @updatedAt
   company        Company         @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  customer       Customer        @relation(fields: [customerId], references: [id], onDelete: Restrict)
-  stage          ProjectStage    @relation(fields: [stageId], references: [id], onDelete: Restrict)
-  tasks          Task[]
-  files          FileAsset[]
-  timelineEvents TimelineEvent[]
+  purchaseOrders PurchaseOrder[]
+
+  @@index([companyId, isActive])
+  @@index([companyId, name])
+}
+
+model PurchaseOrderCounter {
+  id        String   @id @default(cuid())
+  companyId String
+  year      Int
+  lastValue Int      @default(0)
+  updatedAt DateTime @updatedAt
+  company   Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@unique([companyId, year])
+}
+
+model PurchaseOrder {
+  id                 String              @id @default(cuid())
+  companyId          String
+  orderNumber        String
+  projectOperationId String
+  supplierId         String
+  status             PurchaseOrderStatus @default(TASLAK)
+  orderDate          DateTime            @default(now())
+  expectedDeliveryAt DateTime?
+  currency           String
+  subtotal           Decimal             @default(0) @db.Decimal(18, 2)
+  taxTotal           Decimal             @default(0) @db.Decimal(18, 2)
+  grandTotal         Decimal             @default(0) @db.Decimal(18, 2)
+  notes              String?
+  createdById        String
+  approvedById       String?
+  approvedAt         DateTime?
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+  company            Company             @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  projectOperation   ProjectOperation    @relation(fields: [projectOperationId], references: [id], onDelete: Restrict)
+  supplier           Supplier            @relation(fields: [supplierId], references: [id], onDelete: Restrict)
+  createdBy          User                @relation("PurchaseOrderCreatedBy", fields: [createdById], references: [id], onDelete: Restrict)
+  approvedBy         User?               @relation("PurchaseOrderApprovedBy", fields: [approvedById], references: [id], onDelete: SetNull)
+  items              PurchaseOrderItem[]
+
+  @@unique([companyId, orderNumber])
+  @@index([projectOperationId, status])
+  @@index([supplierId])
+}
+
+model PurchaseOrderItem {
+  id               String        @id @default(cuid())
+  purchaseOrderId  String
+  bomItemId        String?
+  description      String
+  quantity         Decimal       @db.Decimal(18, 3)
+  receivedQuantity Decimal       @default(0) @db.Decimal(18, 3)
+  unit             String
+  unitPrice        Decimal       @db.Decimal(18, 2)
+  taxRate          Decimal       @default(0) @db.Decimal(5, 2)
+  lineTotal        Decimal       @db.Decimal(18, 2)
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+  purchaseOrder    PurchaseOrder @relation(fields: [purchaseOrderId], references: [id], onDelete: Cascade)
+  bomItem          BomItem?      @relation(fields: [bomItemId], references: [id], onDelete: Restrict)
+
+  @@index([purchaseOrderId])
+  @@index([bomItemId])
+}
+
+model ProjectChecklistItem {
+  id            String       @id @default(cuid())
+  projectId     String
+  key           String
+  title         String
+  stageCode     String
+  category      WorkCategory
+  isCompleted   Boolean      @default(false)
+  completedAt   DateTime?
+  completedById String?
+  sortOrder     Int
+  isRequired    Boolean      @default(false)
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+  project       Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  completedBy   User?        @relation("ChecklistCompletedBy", fields: [completedById], references: [id], onDelete: SetNull)
+
+  @@unique([projectId, key])
+  @@index([projectId, stageCode])
 }
 
 model Task {

@@ -6,8 +6,9 @@ import { PrismaService } from '../../database/prisma.service';
 export class FilesService {
   constructor(private readonly prisma: PrismaService) {}
 
-  findAll() {
+  findAll(companyId: string) {
     return this.prisma.fileAsset.findMany({
+      where: { project: { companyId } },
       orderBy: { createdAt: 'desc' },
       include: {
         project: true,

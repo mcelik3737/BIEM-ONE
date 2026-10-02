@@ -9,12 +9,7 @@ import { ProjectStagesService } from './project-stages.service';
 @ApiTags('project-stages')
 @ApiBearerAuth('access-token')
 @UseGuards(JwtAuthGuard, RbacGuard)
-@Roles(
-  AppRole.SUPER_ADMIN,
-  AppRole.COMPANY_ADMIN,
-  AppRole.PROJECT_MANAGER,
-  AppRole.FIELD_ENGINEER,
-)
+@Roles(AppRole.SUPER_ADMIN, AppRole.COMPANY_ADMIN, AppRole.PROJECT_MANAGER, AppRole.FIELD_ENGINEER)
 @Controller('project-stages')
 export class ProjectStagesController {
   constructor(private readonly projectStagesService: ProjectStagesService) {}

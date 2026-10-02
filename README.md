@@ -1,136 +1,51 @@
-# BIEM ONE
+# BIEM ONE v2
 
-BIEM ONE is a mobile-first business operations platform for Biem Teknoloji. This monorepo includes:
+Müşteri → İş Dosyası → Kazanıldı → Operasyon → BOM → Tedarikçi → Satınalma → Kısmi / Tam Teslim.
 
-- `apps/api`: NestJS API starter with Prisma, PostgreSQL, JWT auth, RBAC guard skeleton, and Swagger
-- `apps/admin`: Next.js admin panel starter with login, dashboard, customers, projects, tasks, and settings pages
-- `apps/mobile`: Flutter mobile starter with clean feature folders and the requested screens
-- `packages/shared`, `packages/types`, `packages/config`: shared constants, shared types, and base config
-- `infrastructure/docker`: Docker Compose for PostgreSQL, Redis, and the API
-- `docs`: product, architecture, and API standards
+## Başlatma (Windows)
 
-## Tech Stack
+Docker Desktop (Linux containers), Node.js 24 ve pnpm 11.7 gerekir. Ana klasör `C:\BIEM-ONE`.
 
-- Monorepo: `pnpm`
-- Backend: `NestJS`
-- Database: `PostgreSQL`
-- ORM: `Prisma`
-- Mobile: `Flutter`
-- Admin panel: `Next.js`
-- Auth: `JWT + refresh token`
-- Authorization: `RBAC`
-- API Docs: `Swagger`
-- Infrastructure: `Docker`
-
-## Project Structure
-
-```text
-BIEM-ONE/
-  apps/
-    api/
-    admin/
-    mobile/
-  packages/
-    shared/
-    types/
-    config/
-  docs/
-    architecture/
-    product/
-    api/
-  infrastructure/
-    docker/
-  scripts/
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File C:\BIEM-ONE\START-BIEM-ONE.ps1
 ```
 
-## Quick Start
+- Admin: http://localhost:3001
+- API sağlık: http://localhost:3000/api/v1/health
+- API belgeleri: http://localhost:3000/docs
+- Giriş: yerel `.env` dosyasındaki `SEED_ADMIN_EMAIL` hesabı ve mevcut şifresi. Şifre kaynakta veya bu belgede bulunmaz; başlatıcı mevcut kullanıcı şifresini değiştirmez.
+- İlk kez başka makinede kurulum için `.env.example` dosyasını `.env` olarak kopyalayıp yerel şifreleri ve `DATABASE_URL` değerini doldurun. `apps/api/.env` gerekiyorsa aynı veritabanını göstermelidir. Gerçek `.env` dosyaları Git dışında kalır.
 
-### 1. Install workspace dependencies
+Başlatıcı bağımlılıkları lock dosyasıyla kurar, Prisma istemcisini üretir, mevcut veritabanı ile şemayı **salt okunur** karşılaştırır, API image'ını ve admin'i derleyip başlatır. Mevcut şemada fark varsa otomatik uygulamak yerine durur. Yalnız tamamen boş `public` şeması ilk kurulumda oluşturulur ve seed edilir. Mevcut `docker_biem-one-postgres` volume'u korunur. Standart portlar: API 3000, admin 3001, PostgreSQL 5433, Redis 6379. Başka servis portu kullanıyorsa kullanıcı süreci sonlandırılmaz.
 
-```bash
-pnpm install
+Admin arka planda çalışır; logu `.runtime/admin.log` içindedir. Başlatıcı, yalnız kendisinin oluşturduğu ve kaynakları değişen admin sürecini yeniler. Docker çalışmıyorsa önce Docker Desktop'ı açın. API logları: `docker logs --tail 100 biem-one-api`.
+
+## Kullanım
+
+1. **Müşteriler** ve **Tedarikçiler**: yeni kayıt, düzenleme, arama, aktif/pasif filtresi ve durum değiştirme.
+2. **İşler → Yeni İş / Talep**: müşteri ve sorumlu seçin. İş Dosyası içinde aşamaları sırayla ilerletin.
+3. **Kazanıldı** aynı Project'e tek ProjectOperation bağlar. İkinci iş oluşturmaz.
+4. **Operasyon → BOM / Malzeme Listesi**: miktar, birim, para birimi ve tahmini maliyet girin.
+5. **Satınalma**: BOM kalemlerini seçin, aynı para birimini ve aktif tedarikçiyi seçip KDV oranıyla sipariş oluşturun.
+6. **Onaya Gönder → Onayla → Sipariş Verildi → Teslimat Gir**. Onay yalnız şirket yöneticisi/proje yöneticisi/super admin rolüne açıktır.
+7. Teslimat alanına toplamı değil **yeni teslim alınan ek miktarı** girin. Örneğin 40, sonra 60. Fazla teslim reddedilir. İptal geçmişi ve teslim miktarlarını korur; siparişe bağlı BOM silinemez.
+
+Para hesapları sunucuda Prisma.Decimal ve iki ondalığa ROUND_HALF_UP ile yapılır. Şirket, doğrulanmış oturumdan alınır. Test verileri ayrı, açıkça KABUL TESTİ olarak adlandırılmış şirketlerde tutulur.
+
+## Doğrulama
+
+```powershell
+pnpm build
+pnpm lint
+pnpm typecheck
+pnpm test:acceptance
 ```
 
-### 2. Prepare API environment
+Kabul testi çalışan API ve PostgreSQL gerektirir. Rastgele şifreli iki test şirketi ve test kullanıcıları oluşturur; mevcut müşteri kayıtlarını değiştirmez/silmez. Test şirketleri inceleme için kalır. Ayrıntı: [Kabul raporu](docs/ACCEPTANCE_V2.md).
 
-```bash
-powershell -ExecutionPolicy Bypass -File scripts/bootstrap.ps1
-```
+## Kaynaklar ve kapsam
 
-Or create `apps/api/.env` from `apps/api/.env.example`.
-
-### 3. Start Docker services
-
-```bash
-docker compose -f infrastructure/docker/docker-compose.yml up -d --build
-```
-
-### 4. Generate Prisma client and seed the database
-
-```bash
-pnpm db:generate
-pnpm db:migrate
-pnpm db:seed
-```
-
-Default seed credentials:
-
-- Email: `admin@biem.one`
-- Password: `Admin123!`
-
-### 5. Run the backend
-
-```bash
-pnpm dev:api
-```
-
-Useful endpoints:
-
-- API base: `http://localhost:3000/api/v1`
-- Swagger docs: `http://localhost:3000/docs`
-- Health check: `http://localhost:3000/api/v1/health`
-
-### 6. Run the admin panel
-
-```bash
-pnpm dev:admin
-```
-
-Expected local URL:
-
-- Admin: `http://localhost:3001` or the port chosen by Next.js
-
-### 7. Run the mobile app
-
-```bash
-cd apps/mobile
-flutter pub get
-flutter run
-```
-
-## Backend Notes
-
-- Prisma schema includes users, roles, permissions, refresh tokens, customers, contacts, projects, project stages, tasks, file assets, notifications, audit logs, and timeline events.
-- JWT auth includes login, refresh, and current-user endpoints.
-- RBAC is implemented with a `@Roles(...)` decorator and `RbacGuard`.
-- Swagger is enabled in `apps/api/src/main.ts`.
-
-## Admin Notes
-
-- Uses the Next.js App Router.
-- Includes a mobile-first shell with navigation and starter operational screens.
-- Ready to connect to the NestJS auth and resource endpoints.
-
-## Mobile Notes
-
-- Uses a clean feature-based folder structure.
-- Includes screens for login, dashboard, projects, project detail, my tasks, task detail, customers, and notifications.
-- Navigation is route-based and easy to replace with a richer state management approach later.
-
-## Next Suggested Steps
-
-1. Add Prisma migrations and connect all read screens to live API data.
-2. Implement CRUD flows for customers, projects, tasks, and documents.
-3. Add refresh-token rotation cleanup, password reset, and audit logging hooks.
-4. Introduce background jobs and workflow automation on top of Redis.
-5. Add CI, tests, and deployment manifests once the first business flows are confirmed.
+- [Kaynak kurtarma kaydı](docs/SOURCE_RECOVERY.md): eski klasördeki commit edilmemiş 5A/5B/5B.1 çalışmaları kurtarıldı.
+- RF/Microwave Engineer profili `.agents/skills/rf-microwave-engineer` içindedir. K-Dense kaynak commit'i ve MIT lisansı `.agents/profiles/rf-microwave-engineer` altında korunur. Bu ajan rehberidir; RF tasarım modülü değildir.
+- Flutter mobil klasörü korunmuş başlangıç çalışmasıdır; bu teslimatın test edilmiş istemcisi web admin'dir.
+- Birleşik görev panosu, ayarlar ve uzman çalışma alanları tamamlanmış modüller gibi gösterilmez. [Tek sonraki işler listesi](docs/NEXT_WORK.md).

@@ -14,13 +14,13 @@ class DashboardScreen extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          SectionCard(
+          const SectionCard(
             title: 'Daily pulse',
             subtitle: 'A simple starter snapshot of delivery operations.',
             child: Wrap(
               spacing: 12,
               runSpacing: 12,
-              children: const [
+              children: [
                 _MetricChip(label: 'Projects', value: '18'),
                 _MetricChip(label: 'Tasks', value: '42'),
                 _MetricChip(label: 'Alerts', value: '7'),

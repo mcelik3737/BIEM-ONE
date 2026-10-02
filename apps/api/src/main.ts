@@ -1,4 +1,4 @@
-import { ValidationPipe } from '@nestjs/common';
+import { BadRequestException, ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { AppModule } from './app.module';
@@ -10,6 +10,24 @@ async function bootstrap() {
   app.enableCors();
   app.useGlobalPipes(
     new ValidationPipe({
+      exceptionFactory: (errors) =>
+        new BadRequestException(
+          errors.map((error) => {
+            const labels: Record<string, string> = {
+              name: 'Firma / iş adı',
+              quantity: 'Miktar',
+              estimatedUnitCost: 'Tahmini birim maliyet',
+              unitPrice: 'Birim fiyat',
+              taxRate: 'KDV oranı',
+              currency: 'Para birimi',
+              email: 'E-posta',
+              items: 'Sipariş kalemleri',
+              companyId: 'Şirket',
+              description: 'Açıklama',
+            };
+            return `${labels[error.property] ?? error.property}: geçerli bir değer girin; eksik, biçimi hatalı veya izin verilmeyen alan.`;
+          }),
+        ),
       whitelist: true,
       transform: true,
       forbidNonWhitelisted: true,
