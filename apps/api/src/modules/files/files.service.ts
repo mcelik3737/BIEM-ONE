@@ -6,8 +6,22 @@ import { PrismaService } from '../../database/prisma.service';
 export class FilesService {
   constructor(private readonly prisma: PrismaService) {}
 
-  findAll() {
+  findAll(companyId: string) {
     return this.prisma.fileAsset.findMany({
+      where: {
+        AND: [
+          {
+            OR: [
+              { project: { companyId } },
+              { customer: { companyId } },
+              { uploadedBy: { companyId } },
+            ],
+          },
+          { OR: [{ projectId: null }, { project: { companyId } }] },
+          { OR: [{ customerId: null }, { customer: { companyId } }] },
+          { OR: [{ uploadedById: null }, { uploadedBy: { companyId } }] },
+        ],
+      },
       orderBy: { createdAt: 'desc' },
       include: {
         project: true,

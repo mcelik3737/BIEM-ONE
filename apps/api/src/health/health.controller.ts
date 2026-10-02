@@ -1,17 +1,15 @@
-import { Controller, Get } from '@nestjs/common';
-import { ApiTags } from '@nestjs/swagger';
-import { Public } from '../common/decorators/public.decorator';
-
-@ApiTags('health')
+import { Controller, Get, ServiceUnavailableException } from '@nestjs/common';
+import { PrismaService } from '../database/prisma.service';
 @Controller('health')
 export class HealthController {
-  @Public()
+  constructor(private readonly db: PrismaService) {}
   @Get()
-  getHealth() {
-    return {
-      service: 'BIEM ONE API',
-      status: 'ok',
-      timestamp: new Date().toISOString(),
-    };
+  async getHealth() {
+    try {
+      await this.db.$queryRaw`SELECT 1`;
+      return { service: 'BIEM ONE API', status: 'ok' };
+    } catch {
+      throw new ServiceUnavailableException('Veritabanına ulaşılamıyor.');
+    }
   }
 }

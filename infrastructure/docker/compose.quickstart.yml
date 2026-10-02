@@ -1,0 +1,68 @@
+# Separate project/volume: never touches the original biem-one-postgres volume.
+name: biem-one-core
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: biem
+      POSTGRES_DB: biem_one_core
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?Run scripts/bootstrap.ps1 first}
+    volumes:
+      - biem-core-data:/var/lib/postgresql/data
+    healthcheck:
+      test: [CMD-SHELL, 'pg_isready -U biem -d biem_one_core']
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    restart: unless-stopped
+  migrate:
+    build:
+      context: ../..
+      dockerfile: apps/api/Dockerfile
+    environment:
+      DATABASE_URL: postgresql://biem:${DB_PASSWORD}@db:5432/biem_one_core
+      SEED_ADMIN_EMAIL: ${SEED_ADMIN_EMAIL:?Run scripts/bootstrap.ps1 first}
+      SEED_ADMIN_PASSWORD: ${SEED_ADMIN_PASSWORD:?Run scripts/bootstrap.ps1 first}
+    command: [sh, -c, 'pnpm --filter @biem-one/api exec prisma migrate deploy && pnpm --filter @biem-one/api exec prisma db seed']
+    depends_on:
+      db:
+        condition: service_healthy
+  api:
+    build:
+      context: ../..
+      dockerfile: apps/api/Dockerfile
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: postgresql://biem:${DB_PASSWORD}@db:5432/biem_one_core
+      JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET:?Missing access secret}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:?Missing refresh secret}
+      PORT: 3000
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    healthcheck:
+      test: [CMD, node, -e, 'fetch("http://127.0.0.1:3000/api/v1/health").then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))']
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+  admin:
+    build:
+      context: ../..
+      dockerfile: apps/admin/Dockerfile
+    environment:
+      API_INTERNAL_URL: http://api:3000/api/v1
+      APP_ORIGIN: ${APP_ORIGIN:-http://localhost:3001}
+    ports:
+      - '127.0.0.1:3001:3001'
+    depends_on:
+      api:
+        condition: service_healthy
+    healthcheck:
+      test: [CMD, node, -e, 'fetch("http://127.0.0.1:3001/login").then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))']
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+volumes:
+  biem-core-data:

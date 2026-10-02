@@ -2,8 +2,8 @@ import type { Metadata } from 'next';
 import './globals.css';
 
 export const metadata: Metadata = {
-  title: 'BIEM ONE Admin',
-  description: 'Operations admin panel for Biem Teknoloji',
+  title: 'BIEM ONE',
+  description: 'BIEM Teknoloji iş ve operasyon yönetimi',
 };
 
 export default function RootLayout({
@@ -12,7 +12,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="tr">
       <body>{children}</body>
     </html>
   );

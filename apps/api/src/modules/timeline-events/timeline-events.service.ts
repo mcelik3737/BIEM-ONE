@@ -6,8 +6,9 @@ import { PrismaService } from '../../database/prisma.service';
 export class TimelineEventsService {
   constructor(private readonly prisma: PrismaService) {}
 
-  findRecent() {
+  findRecent(companyId: string) {
     return this.prisma.timelineEvent.findMany({
+      where: { project: { companyId }, OR: [{ actorId: null }, { actor: { companyId } }] },
       orderBy: { occurredAt: 'desc' },
       take: 100,
       include: {

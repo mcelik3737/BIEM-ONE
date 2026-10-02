@@ -1,0 +1,53 @@
+name: BIEM usable core
+on:
+  push:
+    branches: [main, 'work/**']
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: biem
+          POSTGRES_PASSWORD: test-only
+          POSTGRES_DB: biem_test
+        ports: ['5432:5432']
+        options: --health-cmd="pg_isready -U biem -d biem_test" --health-interval=5s --health-retries=10
+    env:
+      DATABASE_URL: postgresql://biem:test-only@localhost:5432/biem_test
+      NEXT_TELEMETRY_DISABLED: '1'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile --ignore-scripts
+      - run: pnpm db:generate
+      - run: pnpm db:deploy
+      - run: pnpm build
+      - run: pnpm lint
+      - run: pnpm test:acceptance
+      - run: pnpm exec playwright install --with-deps chromium
+      - name: Browser acceptance
+        env:
+          SEED_ADMIN_EMAIL: browser@example.test
+          SEED_ADMIN_PASSWORD: ci-disposable-browser-password
+          JWT_ACCESS_SECRET: ci-disposable-access-secret-00000000001
+          JWT_REFRESH_SECRET: ci-disposable-refresh-secret-0000000002
+          API_INTERNAL_URL: http://127.0.0.1:3000/api/v1
+          APP_ORIGIN: http://127.0.0.1:3001
+          E2E_ORIGIN: http://127.0.0.1:3001
+          E2E_EMAIL: browser@example.test
+          E2E_PASSWORD: ci-disposable-browser-password
+        run: |
+          pnpm db:seed
+          node apps/api/dist/main.js > /tmp/biem-api.log 2>&1 &
+          pnpm --filter @biem-one/admin start --port 3001 > /tmp/biem-admin.log 2>&1 &
+          timeout 60 bash -c 'until curl --fail --silent http://127.0.0.1:3000/api/v1/health && curl --fail --silent http://127.0.0.1:3001/login > /dev/null; do sleep 1; done'
+          pnpm test:browser

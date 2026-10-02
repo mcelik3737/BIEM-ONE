@@ -6,8 +6,9 @@ import { PrismaService } from '../../database/prisma.service';
 export class AuditLogsService {
   constructor(private readonly prisma: PrismaService) {}
 
-  findRecent() {
+  findRecent(companyId: string) {
     return this.prisma.auditLog.findMany({
+      where: { user: { companyId } },
       orderBy: { createdAt: 'desc' },
       take: 50,
       include: {

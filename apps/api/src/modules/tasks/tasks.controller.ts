@@ -1,4 +1,5 @@
-import { Controller, Get, UseGuards } from '@nestjs/common';
+import { RequestWithUser } from '../../common/interfaces/request-with-user.interface';
+import { Controller, Get, Req, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { AppRole } from '../../common/enums/app-role.enum';
@@ -9,18 +10,13 @@ import { TasksService } from './tasks.service';
 @ApiTags('tasks')
 @ApiBearerAuth('access-token')
 @UseGuards(JwtAuthGuard, RbacGuard)
-@Roles(
-  AppRole.SUPER_ADMIN,
-  AppRole.COMPANY_ADMIN,
-  AppRole.PROJECT_MANAGER,
-  AppRole.FIELD_ENGINEER,
-)
+@Roles(AppRole.SUPER_ADMIN, AppRole.COMPANY_ADMIN, AppRole.PROJECT_MANAGER, AppRole.FIELD_ENGINEER)
 @Controller('tasks')
 export class TasksController {
   constructor(private readonly tasksService: TasksService) {}
 
   @Get()
-  findAll() {
-    return this.tasksService.findAll();
+  findAll(@Req() r: RequestWithUser) {
+    return this.tasksService.findAll(r.user.companyId);
   }
 }

@@ -1,18 +1,11 @@
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
-import { compare, hash } from 'bcryptjs';
-import { AppRole } from '../../common/enums/app-role.enum';
+import { compare } from 'bcryptjs';
+import { createHash, randomUUID } from 'node:crypto';
 import { PrismaService } from '../../database/prisma.service';
 import { LoginDto } from './dto/login.dto';
 import { RefreshTokenDto } from './dto/refresh-token.dto';
-
-interface JwtPayload {
-  sub: string;
-  email: string;
-  companyId: string;
-  roles: AppRole[];
-}
 
 interface UserWithRoles {
   id: string;
@@ -21,184 +14,98 @@ interface UserWithRoles {
   companyId: string;
   roles: Array<{ role: { code: string } }>;
 }
-
+const digest = (value: string) => createHash('sha256').update(value).digest('hex');
 @Injectable()
 export class AuthService {
   constructor(
     private readonly prisma: PrismaService,
-    private readonly jwtService: JwtService,
-    private readonly configService: ConfigService,
+    private readonly jwt: JwtService,
+    private readonly config: ConfigService,
   ) {}
-
+  private async user(id: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { id },
+      include: { roles: { include: { role: true } } },
+    });
+    if (!user?.isActive) throw new UnauthorizedException('Oturum geçersiz.');
+    return user;
+  }
   async login(dto: LoginDto) {
     const user = await this.prisma.user.findUnique({
-      where: { email: dto.email },
-      include: {
-        roles: {
-          include: {
-            role: true,
-          },
-        },
-      },
+      where: { email: dto.email.trim().toLowerCase() },
+      include: { roles: { include: { role: true } } },
     });
-
-    if (!user || !(await compare(dto.password, user.passwordHash))) {
-      throw new UnauthorizedException('Invalid credentials');
-    }
-
-    const tokens = await this.createTokens(user);
-    await this.storeRefreshToken(user.id, tokens.refreshToken);
-
-    return {
-      user: this.serializeUser(user),
-      tokens,
-    };
+    if (!user?.isActive || !(await compare(dto.password, user.passwordHash)))
+      throw new UnauthorizedException('E-posta veya parola hatalı.');
+    const tokens = await this.tokens(user);
+    await this.prisma.refreshToken.create({ data: this.refreshData(user.id, tokens.refreshToken) });
+    return { user: this.serialize(user), tokens };
   }
-
   async refresh(dto: RefreshTokenDto) {
-    const payload = await this.verifyRefreshToken(dto.refreshToken);
-    await this.rotateRefreshToken(payload.sub, dto.refreshToken);
-
-    const user = await this.prisma.user.findUnique({
-      where: { id: payload.sub },
-      include: {
-        roles: {
-          include: {
-            role: true,
-          },
+    let sub: string;
+    try {
+      ({ sub } = await this.jwt.verifyAsync<{ sub: string }>(dto.refreshToken, {
+        secret: this.config.getOrThrow<string>('JWT_REFRESH_SECRET'),
+        algorithms: ['HS256'],
+      }));
+    } catch {
+      throw new UnauthorizedException('Oturum süresi doldu.');
+    }
+    const user = await this.user(sub);
+    const tokens = await this.tokens(user);
+    await this.prisma.$transaction(async (tx) => {
+      const result = await tx.refreshToken.updateMany({
+        where: {
+          userId: sub,
+          tokenHash: digest(dto.refreshToken),
+          revokedAt: null,
+          expiresAt: { gt: new Date() },
         },
-      },
+        data: { revokedAt: new Date() },
+      });
+      if (result.count !== 1) throw new UnauthorizedException('Oturum süresi doldu.');
+      await tx.refreshToken.create({ data: this.refreshData(sub, tokens.refreshToken) });
     });
-
-    if (!user) {
-      throw new UnauthorizedException('User not found');
-    }
-
-    const tokens = await this.createTokens(user);
-    await this.storeRefreshToken(user.id, tokens.refreshToken);
-
-    return {
-      user: this.serializeUser(user),
-      tokens,
-    };
+    return { user: this.serialize(user), tokens };
   }
-
-  async me(userId: string) {
-    const user = await this.prisma.user.findUnique({
-      where: { id: userId },
-      include: {
-        roles: {
-          include: {
-            role: true,
-          },
-        },
-      },
-    });
-
-    if (!user) {
-      throw new UnauthorizedException('User not found');
-    }
-
-    return this.serializeUser(user);
-  }
-
-  private async createTokens(user: UserWithRoles) {
-    const payload: JwtPayload = {
-      sub: user.id,
-      email: user.email,
-      companyId: user.companyId,
-      roles: user.roles.map((item) => item.role.code as AppRole),
-    };
-
-    const [accessToken, refreshToken] = await Promise.all([
-      this.jwtService.signAsync(payload, {
-        secret: this.accessSecret,
-        expiresIn: this.configService.get<string>('JWT_ACCESS_EXPIRES_IN') ?? '15m',
-      }),
-      this.jwtService.signAsync(payload, {
-        secret: this.refreshSecret,
-        expiresIn: `${this.refreshTokenDays}d`,
-      }),
-    ]);
-
-    return { accessToken, refreshToken };
-  }
-
-  private async storeRefreshToken(userId: string, refreshToken: string) {
-    await this.prisma.refreshToken.create({
-      data: {
-        userId,
-        tokenHash: await hash(refreshToken, 10),
-        expiresAt: new Date(Date.now() + this.refreshTokenDays * 24 * 60 * 60 * 1000),
-      },
-    });
-  }
-
-  private async rotateRefreshToken(userId: string, refreshToken: string) {
-    const activeTokens = await this.prisma.refreshToken.findMany({
-      where: {
-        userId,
-        revokedAt: null,
-        expiresAt: { gt: new Date() },
-      },
-      orderBy: { createdAt: 'desc' },
-      take: 5,
-    });
-
-    const matchedToken = await this.findMatchingRefreshToken(activeTokens, refreshToken);
-
-    if (!matchedToken) {
-      throw new UnauthorizedException('Invalid refresh token');
-    }
-
-    await this.prisma.refreshToken.update({
-      where: { id: matchedToken.id },
+  async logout(dto: RefreshTokenDto) {
+    await this.prisma.refreshToken.updateMany({
+      where: { tokenHash: digest(dto.refreshToken), revokedAt: null },
       data: { revokedAt: new Date() },
     });
+    return { ok: true };
   }
-
-  private async findMatchingRefreshToken(
-    activeTokens: Array<{ id: string; tokenHash: string }>,
-    refreshToken: string,
-  ) {
-    for (const token of activeTokens) {
-      if (await compare(refreshToken, token.tokenHash)) {
-        return token;
-      }
-    }
-
-    return null;
+  async me(id: string) {
+    return this.serialize(await this.user(id));
   }
-
-  private async verifyRefreshToken(refreshToken: string) {
-    try {
-      return await this.jwtService.verifyAsync<JwtPayload>(refreshToken, {
-        secret: this.refreshSecret,
-      });
-    } catch {
-      throw new UnauthorizedException('Refresh token is invalid or expired');
-    }
-  }
-
-  private serializeUser(user: UserWithRoles) {
+  private serialize(u: UserWithRoles) {
     return {
-      id: user.id,
-      email: user.email,
-      fullName: user.fullName,
-      companyId: user.companyId,
-      roles: user.roles.map((item) => item.role.code as AppRole),
+      id: u.id,
+      email: u.email,
+      fullName: u.fullName,
+      companyId: u.companyId,
+      roles: u.roles.map((r) => r.role.code),
     };
   }
-
-  private get accessSecret() {
-    return this.configService.get<string>('JWT_ACCESS_SECRET') ?? 'access-secret';
+  private async tokens(u: UserWithRoles) {
+    const payload = { sub: u.id };
+    const [accessToken, refreshToken] = await Promise.all([
+      this.jwt.signAsync(payload, {
+        secret: this.config.getOrThrow<string>('JWT_ACCESS_SECRET'),
+        expiresIn: 900,
+        jwtid: randomUUID(),
+        algorithm: 'HS256',
+      }),
+      this.jwt.signAsync(payload, {
+        secret: this.config.getOrThrow<string>('JWT_REFRESH_SECRET'),
+        expiresIn: 604800,
+        jwtid: randomUUID(),
+        algorithm: 'HS256',
+      }),
+    ]);
+    return { accessToken, refreshToken };
   }
-
-  private get refreshSecret() {
-    return this.configService.get<string>('JWT_REFRESH_SECRET') ?? 'refresh-secret';
-  }
-
-  private get refreshTokenDays() {
-    return Number(this.configService.get<string>('JWT_REFRESH_EXPIRES_IN_DAYS') ?? '7');
+  private refreshData(userId: string, token: string) {
+    return { userId, tokenHash: digest(token), expiresAt: new Date(Date.now() + 604800000) };
   }
 }

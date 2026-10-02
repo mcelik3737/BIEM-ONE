@@ -6,8 +6,14 @@ import { PrismaService } from '../../database/prisma.service';
 export class TasksService {
   constructor(private readonly prisma: PrismaService) {}
 
-  findAll() {
+  findAll(companyId: string) {
     return this.prisma.task.findMany({
+      where: {
+        AND: [
+          { OR: [{ project: { companyId } }, { projectId: null, assignee: { companyId } }] },
+          { OR: [{ assigneeId: null }, { assignee: { companyId } }] },
+        ],
+      },
       orderBy: { createdAt: 'desc' },
       include: {
         project: true,

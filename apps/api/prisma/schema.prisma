@@ -43,6 +43,9 @@ model Company {
   users     User[]
   customers Customer[]
   projects  Project[]
+  suppliers Supplier[]
+  purchaseOrders PurchaseOrder[]
+  purchaseCounters PurchaseCounter[]
 }
 
 model User {
@@ -62,6 +65,7 @@ model User {
   uploadedFiles FileAsset[]
   auditLogs     AuditLog[]
   timelineEvents TimelineEvent[]
+  receipts PurchaseReceipt[]
 }
 
 model Role {
@@ -121,6 +125,10 @@ model Customer {
   companyId  String
   name       String
   code       String?
+  shortName  String?
+  contactName String?
+  taxOffice String?
+  isActive Boolean @default(true)
   taxNumber  String?
   email      String?
   phone      String?
@@ -162,6 +170,8 @@ model Project {
   id             String          @id @default(cuid())
   companyId      String
   customerId     String
+  salesStatus SalesStatus @default(REVIEW)
+  operation ProjectOperation?
   stageId        String
   name           String
   code           String?
@@ -241,4 +251,163 @@ model TimelineEvent {
   occurredAt DateTime @default(now())
   project    Project? @relation(fields: [projectId], references: [id], onDelete: SetNull)
   actor      User?    @relation(fields: [actorId], references: [id], onDelete: SetNull)
+}
+
+
+enum SalesStatus {
+  REVIEW
+  SURVEY
+  QUOTED
+  DECISION
+  WON
+  LOST
+}
+
+enum OperationStatus {
+  PREPARATION
+  PROCUREMENT
+  INSTALLATION
+  TEST
+  ACCEPTANCE
+  MAINTENANCE
+  COMPLETED
+}
+
+enum Currency {
+  TRY
+  USD
+  EUR
+}
+
+enum PurchaseStatus {
+  DRAFT
+  SUBMITTED
+  APPROVED
+  ORDERED
+  PARTIALLY_RECEIVED
+  RECEIVED
+  CANCELLED
+}
+
+model Supplier {
+  id String @id @default(cuid())
+  companyId String
+  name String
+  shortName String?
+  contactName String?
+  taxOffice String?
+  taxNumber String?
+  email String?
+  phone String?
+  address String?
+  notes String?
+  isActive Boolean @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  company Company @relation(fields: [companyId], references: [id], onDelete: Restrict)
+  purchaseOrders PurchaseOrder[]
+  @@index([companyId, isActive])
+}
+
+model ProjectOperation {
+  id String @id @default(cuid())
+  projectId String @unique
+  status OperationStatus @default(PREPARATION)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  project Project @relation(fields: [projectId], references: [id], onDelete: Restrict)
+  bomItems BomItem[]
+  purchaseOrders PurchaseOrder[]
+}
+
+model BomItem {
+  id String @id @default(cuid())
+  operationId String
+  name String
+  partNumber String?
+  unit String
+  quantity Decimal @db.Decimal(20,4)
+  unitPrice Decimal @db.Decimal(20,4)
+  currency Currency
+  notes String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  operation ProjectOperation @relation(fields: [operationId], references: [id], onDelete: Restrict)
+  purchaseItems PurchaseOrderItem[]
+  @@index([operationId])
+}
+
+model PurchaseCounter {
+  companyId String
+  year Int
+  value Int @default(0)
+  company Company @relation(fields: [companyId], references: [id], onDelete: Restrict)
+  @@id([companyId, year])
+}
+
+model PurchaseOrder {
+  id String @id @default(cuid())
+  companyId String
+  operationId String
+  supplierId String
+  number String
+  requestKey String
+  status PurchaseStatus @default(DRAFT)
+  currency Currency
+  subtotal Decimal @db.Decimal(20,2)
+  taxTotal Decimal @db.Decimal(20,2)
+  total Decimal @db.Decimal(20,2)
+  notes String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  company Company @relation(fields: [companyId], references: [id], onDelete: Restrict)
+  operation ProjectOperation @relation(fields: [operationId], references: [id], onDelete: Restrict)
+  supplier Supplier @relation(fields: [supplierId], references: [id], onDelete: Restrict)
+  items PurchaseOrderItem[]
+  receipts PurchaseReceipt[]
+  @@unique([companyId, number])
+  @@unique([companyId, requestKey])
+  @@index([operationId])
+}
+
+model PurchaseOrderItem {
+  id String @id @default(cuid())
+  purchaseOrderId String
+  bomItemId String
+  name String
+  unit String
+  quantity Decimal @db.Decimal(20,4)
+  receivedQuantity Decimal @default(0) @db.Decimal(20,4)
+  unitPrice Decimal @db.Decimal(20,4)
+  taxRate Decimal @db.Decimal(5,2)
+  subtotal Decimal @db.Decimal(20,2)
+  taxTotal Decimal @db.Decimal(20,2)
+  total Decimal @db.Decimal(20,2)
+  purchaseOrder PurchaseOrder @relation(fields: [purchaseOrderId], references: [id], onDelete: Restrict)
+  bomItem BomItem @relation(fields: [bomItemId], references: [id], onDelete: Restrict)
+  receiptItems PurchaseReceiptItem[]
+  @@unique([purchaseOrderId, bomItemId])
+  @@index([bomItemId])
+}
+
+model PurchaseReceipt {
+  id String @id @default(cuid())
+  purchaseOrderId String
+  actorId String
+  requestKey String
+  note String?
+  createdAt DateTime @default(now())
+  purchaseOrder PurchaseOrder @relation(fields: [purchaseOrderId], references: [id], onDelete: Restrict)
+  actor User @relation(fields: [actorId], references: [id], onDelete: Restrict)
+  items PurchaseReceiptItem[]
+  @@unique([purchaseOrderId, requestKey])
+}
+
+model PurchaseReceiptItem {
+  id String @id @default(cuid())
+  receiptId String
+  purchaseOrderItemId String
+  quantity Decimal @db.Decimal(20,4)
+  receipt PurchaseReceipt @relation(fields: [receiptId], references: [id], onDelete: Restrict)
+  purchaseOrderItem PurchaseOrderItem @relation(fields: [purchaseOrderItemId], references: [id], onDelete: Restrict)
 }

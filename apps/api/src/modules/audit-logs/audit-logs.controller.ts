@@ -1,4 +1,5 @@
-import { Controller, Get, UseGuards } from '@nestjs/common';
+import { RequestWithUser } from '../../common/interfaces/request-with-user.interface';
+import { Controller, Get, Req, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { AppRole } from '../../common/enums/app-role.enum';
@@ -15,7 +16,7 @@ export class AuditLogsController {
   constructor(private readonly auditLogsService: AuditLogsService) {}
 
   @Get()
-  findRecent() {
-    return this.auditLogsService.findRecent();
+  findRecent(@Req() r: RequestWithUser) {
+    return this.auditLogsService.findRecent(r.user.companyId);
   }
 }

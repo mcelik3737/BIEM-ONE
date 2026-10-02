@@ -1,4 +1,5 @@
-import { Controller, Get, UseGuards } from '@nestjs/common';
+import { RequestWithUser } from '../../common/interfaces/request-with-user.interface';
+import { Controller, Get, Req, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { TimelineEventsService } from './timeline-events.service';
@@ -11,7 +12,7 @@ export class TimelineEventsController {
   constructor(private readonly timelineEventsService: TimelineEventsService) {}
 
   @Get()
-  findRecent() {
-    return this.timelineEventsService.findRecent();
+  findRecent(@Req() r: RequestWithUser) {
+    return this.timelineEventsService.findRecent(r.user.companyId);
   }
 }
