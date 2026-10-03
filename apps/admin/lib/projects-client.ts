@@ -145,6 +145,14 @@ export interface ProjectTask {
   dueDate?: string | null;
   assignee?: { id: string; fullName: string; email: string } | null;
 }
+export interface TaskRecord extends ProjectTask {
+  projectId: string;
+  project: { id: string; name: string; workNumber?: string | null };
+}
+export interface DashboardData {
+  projects: Project[];
+  committedTotals: Record<string, string>;
+}
 export interface ChecklistItem {
   id: string;
   key: string;
@@ -270,7 +278,9 @@ async function projectRequest<T>(path: string, init?: RequestInit): Promise<T> {
       ...init?.headers,
       Authorization: `Bearer ${accessToken}`,
     },
-  }).catch(() => { throw new Error('Sunucuya ulaşılamıyor. Bağlantınızı kontrol edip yeniden deneyin.'); });
+  }).catch(() => {
+    throw new Error('Sunucuya ulaşılamıyor. Bağlantınızı kontrol edip yeniden deneyin.');
+  });
   if (response.status === 401) {
     clearAuthSession();
     throw new UnauthorizedError('Oturumunuzun süresi doldu.');
@@ -286,6 +296,8 @@ async function projectRequest<T>(path: string, init?: RequestInit): Promise<T> {
 }
 
 export const fetchProjects = () => projectRequest<Project[]>('/projects');
+export const fetchDashboard = () => projectRequest<DashboardData>('/projects/dashboard');
+export const fetchTasks = () => projectRequest<TaskRecord[]>('/tasks');
 export const fetchProjectOptions = () => projectRequest<ProjectOptions>('/projects/options');
 export const createProject = (input: CreateProjectInput) =>
   projectRequest<Project>('/projects', { method: 'POST', body: JSON.stringify(input) });

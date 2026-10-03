@@ -29,6 +29,8 @@ Admin arka planda çalışır; logu `.runtime/admin.log` içindedir. Başlatıc�
 5. **Satınalma**: BOM kalemlerini seçin, aynı para birimini ve aktif tedarikçiyi seçip KDV oranıyla sipariş oluşturun.
 6. **Onaya Gönder → Onayla → Sipariş Verildi → Teslimat Gir**. Onay yalnız şirket yöneticisi/proje yöneticisi/super admin rolüne açıktır.
 7. Teslimat alanına toplamı değil **yeni teslim alınan ek miktarı** girin. Örneğin 40, sonra 60. Fazla teslim reddedilir. İptal geçmişi ve teslim miktarlarını korur; siparişe bağlı BOM silinemez.
+8. **Görevler**: işe bağlı görev oluşturun; sorumlu, termin, öncelik ve durumunu düzenleyin. Açık/geciken/tamamlanan görünümleri, arama ve iş/sorumlu filtreleri bulunur. Görevi tamamlayabilir, yeniden açabilir ve bağlı iş dosyasının Görevler sekmesine doğrudan gidebilirsiniz.
+9. **Gösterge Paneli**: geciken görev kartı görev panosunu açar; diğer göstergeler ilgili kayıtları ve iş dosyası bağlantılarını gösterir. BOM ve sipariş bilgileri panel API'sinden gelir; taahhüt toplamları sunucuda para birimi bazında hesaplanır. Veri yüklenemediğinde hata ve tekrar deneme gösterilir.
 
 Para hesapları sunucuda Prisma.Decimal ve iki ondalığa ROUND_HALF_UP ile yapılır. Şirket, doğrulanmış oturumdan alınır. Test verileri ayrı, açıkça KABUL TESTİ olarak adlandırılmış şirketlerde tutulur.
 
@@ -51,4 +53,4 @@ GitHub Actions her PR ve `main` güncellemesinde boş PostgreSQL 16 veritabanın
 - [Kaynak kurtarma kaydı](docs/SOURCE_RECOVERY.md): eski klasördeki commit edilmemiş 5A/5B/5B.1 çalışmaları kurtarıldı.
 - RF/Microwave Engineer profili `.agents/skills/rf-microwave-engineer` içindedir. K-Dense kaynak commit'i ve MIT lisansı `.agents/profiles/rf-microwave-engineer` altında korunur. Bu ajan rehberidir; RF tasarım modülü değildir.
 - Flutter mobil klasörü korunmuş başlangıç çalışmasıdır; bu teslimatın test edilmiş istemcisi web admin'dir.
-- Birleşik görev panosu, ayarlar ve uzman çalışma alanları tamamlanmış modüller gibi gösterilmez. [Tek sonraki işler listesi](docs/NEXT_WORK.md).
+- Ayarlar ve uzman çalışma alanları tamamlanmış modüller gibi gösterilmez. [Tek sonraki işler listesi](docs/NEXT_WORK.md).

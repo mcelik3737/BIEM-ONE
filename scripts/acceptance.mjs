@@ -59,6 +59,15 @@ try {
   assert.equal(await db.project.count({ where: { companyId: companyA.id } }), 1);
   assert.equal(await db.projectOperation.count({ where: { projectId: project.id } }), 1);
   pass('İş aşamaları ve tek Project → tek ProjectOperation');
+  const taskTitle = `Saha kontrolü ${runId}`;
+  const task = await request(`${projectPath}/tasks`, token, 'POST', { title: taskTitle, dueDate: '2000-01-01T00:00:00.000Z', priority: 'HIGH' }, 201);
+  const taskList = await request('/tasks', token);
+  assert.equal(taskList.find(item => item.id === task.id).project.id, project.id);
+  await request(`/tasks/${task.id}`, otherToken, 'PATCH', { status: 'DONE' }, 404);
+  await request(`/tasks/${task.id}`, token, 'PATCH', { assigneeId: other.id }, 400);
+  assert.equal((await request(`/tasks/${task.id}`, token, 'PATCH', { status: 'DONE' })).status, 'DONE');
+  assert.equal((await request(`/tasks/${task.id}`, token, 'PATCH', { status: 'TODO' })).status, 'TODO');
+  pass('Görev listesi, iş bağlantısı, tamamlama/yeniden açma ve şirket sınırları');
   const prefix = `${projectPath}/operation`;
   const bom = await request(`${prefix}/bom`, token, 'POST', { itemType: 'MALZEME', description: 'RF feeder', quantity: '100', unit: 'metre', currency: 'USD', estimatedUnitCost: '10' }, 201);
   assert.equal(bom.estimatedTotalCost, '1000');
@@ -77,6 +86,13 @@ try {
   await request(`${orderPath}/approve`, token, 'POST', {}, 201);
   await request(`${orderPath}/status`, token, 'POST', { status: 'SIPARIS_VERILDI' }, 201);
   pass('Rol kontrollü onay; bağlı BOM silme ve para birimi uyuşmazlığı engeli');
+  const dashboard = await request('/projects/dashboard', token);
+  const dashboardProject = dashboard.projects.find(item => item.id === project.id);
+  assert.equal(dashboardProject.operation.bomItems[0].id, bom.id);
+  assert.equal(dashboardProject.operation.purchaseOrders[0].id, order.id);
+  assert.equal(dashboard.committedTotals.USD, '1200.00');
+  assert.deepEqual(await request('/projects/dashboard', otherToken), { projects: [], committedTotals: {} });
+  pass('Gösterge paneli gerçek BOM/sipariş verisi, sunucuda 1.200 USD toplam ve şirket izolasyonu');
   const receive = (quantity, expected = 201) => request(`${orderPath}/receive`, token, 'POST', { itemId: order.items[0].id, quantity }, expected);
   let delivery = await receive(40);
   assert.equal(delivery.status, 'KISMI_TESLIM'); assert.equal(delivery.items[0].receivedQuantity, '40');
@@ -106,11 +122,12 @@ try {
   await request(`${prefix}/bom/${bom.id}`, token, 'DELETE', undefined, 400);
   pass('Eşzamanlı 60+60 teslimden biri reddedildi; iptalde kalem/teslim geçmişi korundu');
   const persisted = await db.purchaseOrder.findUniqueOrThrow({ where: { id: order.id }, include: { items: true } });
+  assert.deepEqual((await request('/projects/dashboard', token)).committedTotals, {});
   assert.equal(persisted.items[0].receivedQuantity.toString(), '100');
   assert.equal((await request(orderPath, token)).grandTotal, '1200');
   pass('Veritabanından ve yeni HTTP isteğinden kalıcılık doğrulandı');
   mkdirSync('.runtime', { recursive: true });
-  writeFileSync('.runtime/acceptance-session.json', JSON.stringify({ email: admin.email, password, projectId: project.id, orderId: order.id, customerId: customer.id, supplierId: supplier.id, runId }));
+  writeFileSync('.runtime/acceptance-session.json', JSON.stringify({ email: admin.email, password, projectId: project.id, orderId: order.id, customerId: customer.id, supplierId: supplier.id, taskId: task.id, taskTitle, runId }));
   writeFileSync('.runtime/acceptance-results.json', JSON.stringify({ date: new Date().toISOString(), runId, checks, projectId: project.id }, null, 2));
   console.log(`Tamamlandı: ${checks.length} kabul grubu. Ayrı test şirketleri korundu; kimlik bilgileri yalnızca .runtime içinde.`);
 } finally { await db.$disconnect(); }

@@ -44,6 +44,12 @@ export class ProjectsController {
     return this.projectsService.getOptions(request.user.companyId);
   }
 
+  @Get('dashboard')
+  @ApiOperation({ summary: 'Tenant dashboard with procurement data and Decimal currency totals' })
+  dashboard(@Req() request: RequestWithUser) {
+    return this.projectsService.dashboard(request.user.companyId);
+  }
+
   @Post()
   @ApiOperation({ summary: 'Create a new İş / Talep' })
   @ApiCreatedResponse({ description: 'The work item was created in Yeni Talep.' })
