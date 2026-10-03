@@ -15,6 +15,7 @@ export async function checkPersonnel({request, token, engineerToken, otherToken,
   await request(`${pp}/compensations`,token,'POST',rate,201);
   await request(`${pp}/compensations`,token,'POST',rate,409);
   await request(`${pp}/compensations`,token,'POST',{...rate,effectiveFrom:'2020-02-01',monthlyHours:'0'},400);
+  await request(`${pp}/compensations`,token,'POST',{...rate,effectiveFrom:'2020-02-01',monthlyEmployerCost:'999999999999',monthlyHours:'0.01'},400);
   assert.equal((await request(pp,token)).compensations[0].hourlyCost,'300.000000');
   pass('Tarihli ücret dönemleri ve 60.000 / 200 = 300 TRY saat maliyeti');
   const docInput={title:'Kabul İSG eğitim belgesi',isRequired:true,expiryRequired:true,issuedAt:'2020-01-01',expiresAt:'2040-01-01'};
@@ -86,7 +87,9 @@ export async function checkPersonnel({request, token, engineerToken, otherToken,
   assert.equal(all.rows.find(r=>r.currency==='EUR').label,'İdari çalışma');
   assert.deepEqual((await request('/personnel/costs',otherToken)).totals,{});
   await request(`/personnel/project-costs/${project.id}`,otherToken,'GET',undefined,404);
-  for(const path of ['/users','/projects','/tasks','/files','/audit-logs']) assert.doesNotMatch(JSON.stringify(await request(path,engineerToken)),/monthlySalary|monthlyEmployerCost|fileData|hourlyCost/);
+  for(const path of ['/users','/projects','/tasks','/files','/audit-logs']) assert.doesNotMatch(JSON.stringify(await request(path,token)),/monthlySalary|monthlyEmployerCost|fileData|hourlyCost/);
+  for(const path of ['/projects','/tasks','/files']) assert.doesNotMatch(JSON.stringify(await request(path,engineerToken)),/monthlySalary|monthlyEmployerCost|fileData|hourlyCost/);
+  for(const path of ['/users','/audit-logs']) await request(path,engineerToken,'GET',undefined,403);
   pass('Para birimi bazında iş/idari maliyet ayrımı; genel API' + "'lerde maaş ve belge sızıntısı yok");
   return {personId:person.id,personName:profile.fullName,personDocumentId:doc.id,engineerEmail:engineer.email,projectLaborTotal:'2400.00'};
 }

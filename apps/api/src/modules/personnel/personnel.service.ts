@@ -221,6 +221,15 @@ export class PersonnelService {
   async compensation(id: string, user: AuthenticatedUser, dto: CompensationDto) {
     if (new Prisma.Decimal(dto.monthlyHours).lte(0) || new Prisma.Decimal(dto.monthlyHours).gt(744))
       throw new BadRequestException('Aylık maliyet kapasitesi 0 ile 744 saat arasında olmalıdır.');
+    if (
+      new Prisma.Decimal(dto.monthlyEmployerCost)
+        .div(dto.monthlyHours)
+        .toDecimalPlaces(6)
+        .gte('1000000000000')
+    )
+      throw new BadRequestException(
+        'Saat maliyeti kayıt sınırını aşıyor; tutar ve saat bilgisini kontrol edin.',
+      );
     return this.locked(id, user, async (tx) => {
       const result = await tx.employeeCompensation.create({
         data: { ...dto, effectiveFrom: day(dto.effectiveFrom), employeeId: id },
