@@ -1,11 +1,12 @@
 import assert from 'node:assert/strict';
 import { createRequire } from 'node:module';
 import { randomBytes } from 'node:crypto';
-import { mkdirSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 const root = fileURLToPath(new URL('../', import.meta.url));
 process.chdir(root);
-process.loadEnvFile('.env');
+// CI supplies its disposable database settings directly, without a local .env.
+if (existsSync('.env')) process.loadEnvFile('.env');
 const require = createRequire(new URL('../apps/api/package.json', import.meta.url));
 const { PrismaClient } = require('@prisma/client');
 const { hash } = require('bcryptjs');
@@ -24,7 +25,7 @@ async function request(path, token, method = 'GET', body, expected = 200) {
 async function login(email, secret = password) { return request('/auth/login', null, 'POST', { email, password: secret }, 201); }
 try {
   await request('/health'); pass('API health');
-  await login(process.env.SEED_ADMIN_EMAIL, process.env.SEED_ADMIN_PASSWORD); pass('Mevcut gerçek yönetici hesabıyla giriş');
+  await login(process.env.SEED_ADMIN_EMAIL, process.env.SEED_ADMIN_PASSWORD); pass('Yapılandırılmış yönetici hesabıyla giriş');
   const passwordHash = await hash(password, 10);
   for (const code of ['COMPANY_ADMIN', 'FIELD_ENGINEER']) await db.role.upsert({ where: { code }, update: {}, create: { code, name: code } });
   const companyA = await db.company.create({ data: { name: `KABUL TESTİ A ${runId}`, slug: `${runId}-a` } });

@@ -26,6 +26,8 @@ interface LoginResponse {
   tokens: AuthTokens;
 }
 
+export class SessionExpiredError extends Error {}
+
 export function getApiBaseUrl() {
   return API_BASE_URL;
 }
@@ -53,10 +55,16 @@ export async function login(email: string, password: string): Promise<LoginRespo
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ email, password }),
-  }).catch(() => { throw new Error('Giriş sunucusuna ulaşılamıyor. Lütfen yeniden deneyin.'); });
+  }).catch(() => {
+    throw new Error('Giriş sunucusuna ulaşılamıyor. Lütfen yeniden deneyin.');
+  });
 
   if (!response.ok) {
-    throw new Error(response.status === 401 ? 'E-posta veya şifre hatalı.' : 'Giriş yapılamadı. Lütfen yeniden deneyin.');
+    throw new Error(
+      response.status === 401
+        ? 'E-posta veya şifre hatalı.'
+        : 'Giriş yapılamadı. Lütfen yeniden deneyin.',
+    );
   }
 
   return response.json() as Promise<LoginResponse>;
@@ -66,17 +74,23 @@ export async function fetchCurrentUser(): Promise<AuthUser> {
   const accessToken = getAccessToken();
 
   if (!accessToken) {
-    throw new Error('Lütfen giriş yapın.');
+    throw new SessionExpiredError('Lütfen giriş yapın.');
   }
 
   const response = await fetch(`${API_BASE_URL}/auth/me`, {
     headers: {
       Authorization: `Bearer ${accessToken}`,
     },
+    signal: AbortSignal.timeout(10_000),
+  }).catch(() => {
+    throw new Error('Sunucuya ulaşılamadı. Bağlantınızı kontrol edip yeniden deneyin.');
   });
 
+  if (response.status === 401) {
+    throw new SessionExpiredError('Oturum süresi doldu. Yeniden giriş yapın.');
+  }
   if (!response.ok) {
-    throw new Error('Oturum süresi doldu. Yeniden giriş yapın.');
+    throw new Error('Oturum kontrolü tamamlanamadı. Lütfen yeniden deneyin.');
   }
 
   return response.json() as Promise<AuthUser>;

@@ -1,0 +1,61 @@
+name: BIEM ONE release verification
+on:
+  push:
+    branches: [main]
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: biem
+          POSTGRES_PASSWORD: disposable-test-only
+          POSTGRES_DB: biem_release_test
+        ports: ['5432:5432']
+        options: --health-cmd="pg_isready -U biem -d biem_release_test" --health-interval=5s --health-retries=10
+    env:
+      DATABASE_URL: postgresql://biem:disposable-test-only@localhost:5432/biem_release_test
+      JWT_ACCESS_SECRET: ci-disposable-access-secret-00000000001
+      JWT_REFRESH_SECRET: ci-disposable-refresh-secret-0000000002
+      SEED_ADMIN_EMAIL: ci-admin@example.test
+      SEED_ADMIN_PASSWORD: ci-disposable-admin-password
+      NEXT_TELEMETRY_DISABLED: '1'
+      NEXT_PUBLIC_API_BASE_URL: http://localhost:3000/api/v1
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile --ignore-scripts
+      - run: pnpm db:generate
+      - name: Initialize disposable CI database
+        run: |
+          pnpm --filter @biem-one/api exec prisma db push
+          pnpm db:seed
+      - run: pnpm build
+      - run: pnpm lint
+      - run: pnpm typecheck
+      - run: pnpm exec playwright install --with-deps chromium
+      - name: API and browser acceptance
+        run: |
+          node apps/api/dist/src/main.js > /tmp/biem-api.log 2>&1 &
+          pnpm --filter @biem-one/admin start --port 3001 > /tmp/biem-admin.log 2>&1 &
+          timeout 60 bash -c 'until curl --fail --silent http://localhost:3000/api/v1/health && curl --fail --silent http://localhost:3001/login > /dev/null; do sleep 1; done'
+          pnpm test:acceptance
+          pnpm test:browser
+      - name: Retain browser evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: browser-evidence
+          path: .runtime/browser/
+          include-hidden-files: true
+          if-no-files-found: ignore
+          retention-days: 7

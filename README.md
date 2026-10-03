@@ -39,9 +39,12 @@ pnpm build
 pnpm lint
 pnpm typecheck
 pnpm test:acceptance
+pnpm test:browser
 ```
 
-Kabul testi çalışan API ve PostgreSQL gerektirir. Rastgele şifreli iki test şirketi ve test kullanıcıları oluşturur; mevcut müşteri kayıtlarını değiştirmez/silmez. Test şirketleri inceleme için kalır. Ayrıntı: [Kabul raporu](docs/ACCEPTANCE_V2.md).
+Kabul testi çalışan API ve PostgreSQL gerektirir. Rastgele şifreli iki test şirketi ve test kullanıcıları oluşturur; mevcut müşteri kayıtlarını değiştirmez/silmez. Test şirketleri inceleme için kalır. Tarayıcı testi ayrıca çalışan admin ve Playwright Chromium gerektirir (`pnpm exec playwright install chromium`); önce API kabul testi çalıştırılır. Yerel `.env` yoksa testler ortam değişkenlerini kullanır.
+
+GitHub Actions her PR ve `main` güncellemesinde boş PostgreSQL 16 veritabanında kurulum, derleme, lint, tip kontrolü, API kabulü ve tarayıcı kontrolünü çalıştırır. Tarayıcı kanıtları ilgili Actions çalışmasının `browser-evidence` çıktısında 7 gün tutulur; parola içeren test oturum dosyası yüklenmez. Ayrıntılar: [Windows kabul raporu](docs/ACCEPTANCE_V2.md), [bağımsız doğrulama ve oturum düzeltmesi](docs/RELEASE_VERIFICATION.md).
 
 ## Kaynaklar ve kapsam
 

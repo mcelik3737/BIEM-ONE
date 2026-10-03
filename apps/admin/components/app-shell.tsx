@@ -5,7 +5,13 @@ import Image from 'next/image';
 import { ReactNode, useEffect, useState } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { navigationItems } from '../lib/navigation';
-import { AuthUser, clearAuthSession, fetchCurrentUser, getAccessToken } from '../lib/auth-client';
+import {
+  AuthUser,
+  SessionExpiredError,
+  clearAuthSession,
+  fetchCurrentUser,
+  getAccessToken,
+} from '../lib/auth-client';
 
 interface AppShellProps {
   children: ReactNode;
@@ -16,9 +22,13 @@ export function AppShell({ children }: AppShellProps) {
   const router = useRouter();
   const [user, setUser] = useState<AuthUser | null>(null);
   const [isCheckingSession, setIsCheckingSession] = useState(true);
+  const [sessionError, setSessionError] = useState('');
+  const [sessionAttempt, setSessionAttempt] = useState(0);
   const [logoAvailable, setLogoAvailable] = useState(true);
 
   useEffect(() => {
+    setIsCheckingSession(true);
+    setSessionError('');
     if (!getAccessToken()) {
       router.replace('/login');
       return;
@@ -33,15 +43,20 @@ export function AppShell({ children }: AppShellProps) {
           setIsCheckingSession(false);
         }
       })
-      .catch(() => {
-        clearAuthSession();
-        router.replace('/login');
+      .catch((error: unknown) => {
+        if (!isMounted) return;
+        if (error instanceof SessionExpiredError) {
+          clearAuthSession();
+          router.replace('/login');
+          return;
+        }
+        setSessionError(error instanceof Error ? error.message : 'Oturum kontrolü tamamlanamadı.');
       });
 
     return () => {
       isMounted = false;
     };
-  }, [pathname, router]);
+  }, [pathname, router, sessionAttempt]);
 
   function handleLogout() {
     clearAuthSession();
@@ -54,8 +69,20 @@ export function AppShell({ children }: AppShellProps) {
       <main className="auth-layout">
         <section className="auth-card">
           <p className="eyebrow">BIEM ONE</p>
-          <h1>Oturum kontrol ediliyor</h1>
-          <p className="muted">Operasyon çalışma alanınız hazırlanıyor.</p>
+          <h1>{sessionError ? 'Bağlantı kurulamadı' : 'Oturum kontrol ediliyor'}</h1>
+          <p className="muted" role={sessionError ? 'alert' : undefined}>
+            {sessionError || 'Operasyon çalışma alanınız hazırlanıyor.'}
+          </p>
+          {sessionError ? (
+            <div className="form-actions">
+              <button type="button" onClick={() => setSessionAttempt((attempt) => attempt + 1)}>
+                Tekrar Dene
+              </button>
+              <button className="ghost-button" type="button" onClick={handleLogout}>
+                Çıkış Yap
+              </button>
+            </div>
+          ) : null}
         </section>
       </main>
     );
