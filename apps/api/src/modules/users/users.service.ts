@@ -5,8 +5,9 @@ import { PrismaService } from '../../database/prisma.service';
 export class UsersService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async findAll() {
+  async findAll(companyId: string) {
     const users = await this.prisma.user.findMany({
+      where: { companyId },
       orderBy: { createdAt: 'desc' },
       include: {
         roles: {
@@ -28,9 +29,9 @@ export class UsersService {
     }));
   }
 
-  async findOne(id: string) {
-    const user = await this.prisma.user.findUnique({
-      where: { id },
+  async findOne(id: string, companyId: string) {
+    const user = await this.prisma.user.findFirst({
+      where: { id, companyId },
       include: {
         roles: {
           include: {

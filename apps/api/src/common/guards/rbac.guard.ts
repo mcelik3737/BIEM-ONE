@@ -1,4 +1,4 @@
-import { CanActivate, ExecutionContext, Injectable } from '@nestjs/common';
+import { CanActivate, ExecutionContext, ForbiddenException, Injectable } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { IS_PUBLIC_KEY } from '../decorators/public.decorator';
 import { ROLES_KEY } from '../decorators/roles.decorator';
@@ -34,6 +34,8 @@ export class RbacGuard implements CanActivate {
       return true;
     }
 
-    return requiredRoles.some((role) => userRoles.includes(role));
+    if (!requiredRoles.some((role) => userRoles.includes(role)))
+      throw new ForbiddenException('Bu işlem için yetkiniz bulunmuyor.');
+    return true;
   }
 }

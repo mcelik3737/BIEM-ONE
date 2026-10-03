@@ -47,7 +47,7 @@ class LoginScreen extends StatelessWidget {
                   obscureText: true,
                   decoration: InputDecoration(
                     labelText: 'Password',
-                    hintText: 'Admin123!',
+                    hintText: 'Configured in local seed env',
                   ),
                 ),
                 const SizedBox(height: 20),
@@ -60,7 +60,7 @@ class LoginScreen extends StatelessWidget {
                 ),
                 const SizedBox(height: 12),
                 Text(
-                  'Starter account: admin@biem.one / Admin123!',
+                  'Use the seeded admin account from your local SEED_ADMIN_* values.',
                   style: Theme.of(context).textTheme.bodySmall,
                 ),
                 const Spacer(),

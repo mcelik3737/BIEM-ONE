@@ -4,16 +4,13 @@ import { hash } from 'bcryptjs';
 const prisma = new PrismaClient();
 
 const defaultStages = [
-  'Teklif',
-  'Sözleşme',
-  'Keşif',
-  'RF Tasarım',
-  'Satınalma',
-  'Kurulum',
-  'Test',
-  'Kabul',
-  'Sözleşmeli Bakım',
-  'Bakım',
+  { code: 'YENI_TALEP', name: 'Yeni Talep' },
+  { code: 'DEGERLENDIRME', name: 'Değerlendirme' },
+  { code: 'COZUM_KESIF', name: 'Çözüm / Keşif' },
+  { code: 'TEKLIF_VERILDI', name: 'Teklif Verildi' },
+  { code: 'KARAR_BEKLENIYOR', name: 'Karar Bekleniyor' },
+  { code: 'KAZANILDI', name: 'Kazanıldı' },
+  { code: 'KAYBEDILDI', name: 'Kaybedildi' },
 ];
 
 const permissions = [
@@ -24,22 +21,23 @@ const permissions = [
   { code: 'settings.manage', name: 'Manage settings' },
 ];
 
-function toCode(value: string): string {
-  return value
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .replace(/[^a-zA-Z0-9]+/g, '_')
-    .replace(/^_+|_+$/g, '')
-    .toUpperCase();
-}
+const seedCompanyName = process.env.SEED_COMPANY_NAME ?? 'Biem Teknoloji';
+const seedCompanySlug = process.env.SEED_COMPANY_SLUG ?? 'biem-teknoloji';
+const seedAdminEmail = process.env.SEED_ADMIN_EMAIL ?? 'admin@biem.one';
+const seedAdminFullName = process.env.SEED_ADMIN_FULL_NAME ?? 'BIEM Admin';
+const seedAdminPassword = process.env.SEED_ADMIN_PASSWORD;
 
 async function main() {
+  if (!seedAdminPassword) {
+    throw new Error('SEED_ADMIN_PASSWORD must be set before running prisma db seed');
+  }
+
   const company = await prisma.company.upsert({
-    where: { slug: 'biem-teknoloji' },
-    update: { name: 'Biem Teknoloji' },
+    where: { slug: seedCompanySlug },
+    update: {},
     create: {
-      name: 'Biem Teknoloji',
-      slug: 'biem-teknoloji',
+      name: seedCompanyName,
+      slug: seedCompanySlug,
     },
   });
 
@@ -75,19 +73,14 @@ async function main() {
     });
   }
 
-  const adminPasswordHash = await hash('Admin123!', 10);
+  const adminPasswordHash = await hash(seedAdminPassword, 10);
 
   const admin = await prisma.user.upsert({
-    where: { email: 'admin@biem.one' },
-    update: {
-      fullName: 'BIEM Admin',
-      companyId: company.id,
-      passwordHash: adminPasswordHash,
-      isActive: true,
-    },
+    where: { email: seedAdminEmail },
+    update: {},
     create: {
-      email: 'admin@biem.one',
-      fullName: 'BIEM Admin',
+      email: seedAdminEmail,
+      fullName: seedAdminFullName,
       companyId: company.id,
       passwordHash: adminPasswordHash,
     },
@@ -107,17 +100,17 @@ async function main() {
     },
   });
 
-  for (const [index, stageName] of defaultStages.entries()) {
+  for (const [index, stage] of defaultStages.entries()) {
     await prisma.projectStage.upsert({
-      where: { code: toCode(stageName) },
+      where: { code: stage.code },
       update: {
-        name: stageName,
+        name: stage.name,
         sortOrder: index + 1,
         isActive: true,
       },
       create: {
-        name: stageName,
-        code: toCode(stageName),
+        name: stage.name,
+        code: stage.code,
         sortOrder: index + 1,
       },
     });

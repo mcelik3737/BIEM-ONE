@@ -1,0 +1,22 @@
+{
+  "repository": "https://github.com/K-Dense-AI/scientific-agents",
+  "revision": "98c7fae46648724e1a43a1f2b207b0c82fcc462e",
+  "license": "MIT",
+  "files": [
+    {
+      "source": "scientific-agents/rf-microwave-engineer/agents/rf-microwave-engineer.md",
+      "local": ".agents/profiles/rf-microwave-engineer/PROFILE.md",
+      "sha256": "4e1cbe705a8fef8fb5e82a51cad27f10e5920ea962cf2eabee96e8f5c4c928b4"
+    },
+    {
+      "source": "scientific-agents/rf-microwave-engineer/skills/rf-microwave-engineer/SKILL.md",
+      "local": ".agents/skills/rf-microwave-engineer/SKILL.md",
+      "sha256": "68613a0b7dd9b2a64bca42301af9d5dbf617b1de876c745dd17bfac5c4277d19"
+    },
+    {
+      "source": "LICENSE.md",
+      "local": ".agents/profiles/rf-microwave-engineer/LICENSE.md",
+      "sha256": "7b6558eca9d4b159e581c30fe200ce3987caeda9c32519e641031f2ec1b7380b"
+    }
+  ]
+}

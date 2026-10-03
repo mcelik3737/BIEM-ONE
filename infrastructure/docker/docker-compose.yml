@@ -4,13 +4,19 @@ services:
     container_name: biem-one-postgres
     restart: unless-stopped
     environment:
-      POSTGRES_DB: biem_one
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: ${POSTGRES_DB:-biem_one}
+      POSTGRES_USER: ${POSTGRES_USER:-biem_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
     ports:
-      - "5432:5432"
+      - "${POSTGRES_HOST_PORT:-5433}:5432"
     volumes:
       - biem-one-postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
 
   redis:
     image: redis:7-alpine
@@ -21,6 +27,12 @@ services:
       - "6379:6379"
     volumes:
       - biem-one-redis:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
 
   api:
     build:
@@ -29,18 +41,25 @@ services:
     container_name: biem-one-api
     restart: unless-stopped
     depends_on:
-      - postgres
-      - redis
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
     environment:
-      PORT: 3000
-      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/biem_one?schema=public
-      REDIS_URL: redis://redis:6379
-      JWT_ACCESS_SECRET: change-me-access-secret
-      JWT_REFRESH_SECRET: change-me-refresh-secret
-      JWT_ACCESS_EXPIRES_IN: 15m
-      JWT_REFRESH_EXPIRES_IN_DAYS: 7
+      PORT: ${PORT:-3000}
+      DATABASE_URL: postgresql://${POSTGRES_USER:-biem_user}:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}@postgres:5432/${POSTGRES_DB:-biem_one}?schema=public
+      REDIS_URL: ${REDIS_URL:-redis://redis:6379}
+      JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET:?Set JWT_ACCESS_SECRET in .env}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:?Set JWT_REFRESH_SECRET in .env}
+      JWT_ACCESS_EXPIRES_IN: ${JWT_ACCESS_EXPIRES_IN:-15m}
+      JWT_REFRESH_EXPIRES_IN_DAYS: ${JWT_REFRESH_EXPIRES_IN_DAYS:-7}
+      SEED_COMPANY_NAME: ${SEED_COMPANY_NAME:-Biem Teknoloji}
+      SEED_COMPANY_SLUG: ${SEED_COMPANY_SLUG:-biem-teknoloji}
+      SEED_ADMIN_EMAIL: ${SEED_ADMIN_EMAIL:-admin@biem.one}
+      SEED_ADMIN_FULL_NAME: ${SEED_ADMIN_FULL_NAME:-BIEM Admin}
+      SEED_ADMIN_PASSWORD: ${SEED_ADMIN_PASSWORD:?Set SEED_ADMIN_PASSWORD in .env}
     ports:
-      - "3000:3000"
+      - "${PORT:-3000}:3000"
 
 volumes:
   biem-one-postgres:

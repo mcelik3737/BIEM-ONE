@@ -7,12 +7,12 @@ RUN corepack enable && apt-get update && apt-get install -y openssl && rm -rf /v
 
 WORKDIR /app
 
-COPY package.json pnpm-workspace.yaml tsconfig.base.json ./
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml tsconfig.base.json ./
 COPY packages ./packages
 COPY apps/api ./apps/api
 
-RUN pnpm install --filter @biem-one/api...
-RUN pnpm --filter @biem-one/api prisma generate
+RUN pnpm install --frozen-lockfile --filter @biem-one/api...
+RUN pnpm --filter @biem-one/api exec prisma generate
 RUN pnpm --filter @biem-one/api build
 
 EXPOSE 3000

@@ -60,3 +60,9 @@ backups/
 *.pfx
 credentials.json
 service-account*.json
+
+# Local runtime and acceptance artifacts
+.runtime/
+playwright-report/
+test-results/
+*.tsbuildinfo

@@ -14,6 +14,7 @@ import { ProjectsModule } from './modules/projects/projects.module';
 import { RolesModule } from './modules/roles/roles.module';
 import { TasksModule } from './modules/tasks/tasks.module';
 import { TimelineEventsModule } from './modules/timeline-events/timeline-events.module';
+import { ProcurementModule } from './modules/procurement/procurement.module';
 import { UsersModule } from './modules/users/users.module';
 
 @Module({
@@ -36,6 +37,7 @@ import { UsersModule } from './modules/users/users.module';
     NotificationsModule,
     AuditLogsModule,
     TimelineEventsModule,
+    ProcurementModule,
   ],
   controllers: [HealthController],
 })

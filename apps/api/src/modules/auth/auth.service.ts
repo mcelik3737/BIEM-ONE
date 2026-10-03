@@ -19,6 +19,11 @@ interface UserWithRoles {
   email: string;
   fullName: string;
   companyId: string;
+  company: {
+    id: string;
+    name: string;
+    slug: string;
+  };
   roles: Array<{ role: { code: string } }>;
 }
 
@@ -34,6 +39,7 @@ export class AuthService {
     const user = await this.prisma.user.findUnique({
       where: { email: dto.email },
       include: {
+        company: true,
         roles: {
           include: {
             role: true,
@@ -42,8 +48,8 @@ export class AuthService {
       },
     });
 
-    if (!user || !(await compare(dto.password, user.passwordHash))) {
-      throw new UnauthorizedException('Invalid credentials');
+    if (!user || !user.isActive || !(await compare(dto.password, user.passwordHash))) {
+      throw new UnauthorizedException('E-posta veya şifre hatalı.');
     }
 
     const tokens = await this.createTokens(user);
@@ -62,6 +68,7 @@ export class AuthService {
     const user = await this.prisma.user.findUnique({
       where: { id: payload.sub },
       include: {
+        company: true,
         roles: {
           include: {
             role: true,
@@ -70,8 +77,8 @@ export class AuthService {
       },
     });
 
-    if (!user) {
-      throw new UnauthorizedException('User not found');
+    if (!user || !user.isActive) {
+      throw new UnauthorizedException('Kullanıcı bulunamadı veya pasif.');
     }
 
     const tokens = await this.createTokens(user);
@@ -87,6 +94,7 @@ export class AuthService {
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
       include: {
+        company: true,
         roles: {
           include: {
             role: true,
@@ -95,8 +103,8 @@ export class AuthService {
       },
     });
 
-    if (!user) {
-      throw new UnauthorizedException('User not found');
+    if (!user || !user.isActive) {
+      throw new UnauthorizedException('Kullanıcı bulunamadı veya pasif.');
     }
 
     return this.serializeUser(user);
@@ -113,11 +121,11 @@ export class AuthService {
     const [accessToken, refreshToken] = await Promise.all([
       this.jwtService.signAsync(payload, {
         secret: this.accessSecret,
-        expiresIn: this.configService.get<string>('JWT_ACCESS_EXPIRES_IN') ?? '15m',
+        expiresIn: this.accessTokenExpiresInSeconds,
       }),
       this.jwtService.signAsync(payload, {
         secret: this.refreshSecret,
-        expiresIn: `${this.refreshTokenDays}d`,
+        expiresIn: this.refreshTokenExpiresInSeconds,
       }),
     ]);
 
@@ -148,7 +156,7 @@ export class AuthService {
     const matchedToken = await this.findMatchingRefreshToken(activeTokens, refreshToken);
 
     if (!matchedToken) {
-      throw new UnauthorizedException('Invalid refresh token');
+      throw new UnauthorizedException('Oturum yenilenemedi.');
     }
 
     await this.prisma.refreshToken.update({
@@ -176,7 +184,7 @@ export class AuthService {
         secret: this.refreshSecret,
       });
     } catch {
-      throw new UnauthorizedException('Refresh token is invalid or expired');
+      throw new UnauthorizedException('Oturum süresi doldu. Yeniden giriş yapın.');
     }
   }
 
@@ -186,19 +194,57 @@ export class AuthService {
       email: user.email,
       fullName: user.fullName,
       companyId: user.companyId,
+      company: {
+        id: user.company.id,
+        name: user.company.name,
+        slug: user.company.slug,
+      },
       roles: user.roles.map((item) => item.role.code as AppRole),
     };
   }
 
   private get accessSecret() {
-    return this.configService.get<string>('JWT_ACCESS_SECRET') ?? 'access-secret';
+    return this.configService.getOrThrow<string>('JWT_ACCESS_SECRET');
   }
 
   private get refreshSecret() {
-    return this.configService.get<string>('JWT_REFRESH_SECRET') ?? 'refresh-secret';
+    return this.configService.getOrThrow<string>('JWT_REFRESH_SECRET');
   }
 
   private get refreshTokenDays() {
     return Number(this.configService.get<string>('JWT_REFRESH_EXPIRES_IN_DAYS') ?? '7');
+  }
+
+  private get accessTokenExpiresInSeconds(): number {
+    return this.parseDurationToSeconds(
+      this.configService.get<string>('JWT_ACCESS_EXPIRES_IN') ?? '15m',
+    );
+  }
+
+  private get refreshTokenExpiresInSeconds(): number {
+    return this.refreshTokenDays * 24 * 60 * 60;
+  }
+
+  private parseDurationToSeconds(value: string): number {
+    const normalized = value.trim().toLowerCase();
+    const match = normalized.match(/^(\d+)([smhd]?)$/);
+
+    if (!match) {
+      return 15 * 60;
+    }
+
+    const amount = Number(match[1]);
+    const unit = match[2] || 's';
+
+    switch (unit) {
+      case 'm':
+        return amount * 60;
+      case 'h':
+        return amount * 60 * 60;
+      case 'd':
+        return amount * 24 * 60 * 60;
+      default:
+        return amount;
+    }
   }
 }

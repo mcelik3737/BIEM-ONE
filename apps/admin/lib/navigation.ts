@@ -1,27 +1,32 @@
 export const navigationItems = [
   {
-    label: 'Dashboard',
+    label: 'Gösterge Paneli',
     href: '/dashboard',
-    description: 'See active work, risks, and the daily pulse.',
+    description: 'Aktif işleri, riskleri ve günlük görünümü izleyin.',
   },
   {
-    label: 'Customers',
+    label: 'Müşteriler',
     href: '/customers',
-    description: 'Track customer health, documents, and open issues.',
+    description: 'Müşteri kartlarını ve ilişkili işleri yönetin.',
   },
   {
-    label: 'Projects',
+    label: 'Tedarikçiler',
+    href: '/suppliers',
+    description: 'Satınalma tedarikçilerini ve iletişim bilgilerini yönetin.',
+  },
+  {
+    label: 'İşler',
     href: '/projects',
-    description: 'Watch delivery stages from offer to maintenance.',
+    description: 'Talep, teklif ve karar akışını yönetin.',
   },
   {
-    label: 'Tasks',
+    label: 'Görevler',
     href: '/tasks',
-    description: 'Coordinate assignments across the field and office.',
+    description: 'İş dosyalarındaki görevlerinize ulaşın.',
   },
   {
-    label: 'Settings',
+    label: 'Ayarlar',
     href: '/settings',
-    description: 'Manage access, workflow defaults, and integrations.',
+    description: 'Planlanan yönetim araçları.',
   },
 ] as const;
