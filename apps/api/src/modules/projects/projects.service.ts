@@ -61,6 +61,30 @@ const operationStageLabels: Record<OperationStage, string> = {
 export class ProjectsService {
   constructor(private readonly prisma: PrismaService) {}
 
+  async dashboard(companyId: string) {
+    const projects = await this.prisma.project.findMany({
+      where: { companyId },
+      orderBy: { createdAt: 'desc' },
+      include: this.projectInclude(),
+    });
+    const totals: Record<string, Prisma.Decimal> = {};
+    for (const project of projects) {
+      if (project.stage.code !== 'KAZANILDI') continue;
+      for (const order of project.operation?.purchaseOrders ?? []) {
+        if (!['ONAYLANDI', 'SIPARIS_VERILDI', 'KISMI_TESLIM'].includes(order.status)) continue;
+        totals[order.currency] = (totals[order.currency] ?? new Prisma.Decimal(0)).plus(
+          order.grandTotal,
+        );
+      }
+    }
+    return {
+      projects,
+      committedTotals: Object.fromEntries(
+        Object.entries(totals).map(([currency, total]) => [currency, total.toFixed(2)]),
+      ),
+    };
+  }
+
   findAll(companyId: string) {
     return this.prisma.project.findMany({
       where: { companyId },

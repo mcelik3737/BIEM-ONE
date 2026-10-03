@@ -1,7 +1,15 @@
 'use client';
 
-import { FormEvent, KeyboardEvent, useCallback, useEffect, useMemo, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import {
+  FormEvent,
+  KeyboardEvent,
+  Suspense,
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+} from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import {
   CreateProjectInput,
@@ -173,8 +181,11 @@ function getCompleteness(project: Project) {
   };
 }
 
-export default function ProjectsPage() {
+function ProjectsWorkspace() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const linkedProjectId = searchParams.get('project');
+  const linkedTab = searchParams.get('tab');
   const [projects, setProjects] = useState<Project[]>([]);
   const [options, setOptions] = useState<ProjectOptions>({ customers: [], owners: [] });
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -227,7 +238,8 @@ export default function ProjectsPage() {
     setHasUnsavedChanges(false);
     setError('');
     setFeedback('');
-  }, [hasUnsavedChanges, isSaving]);
+    if (linkedProjectId) router.replace('/projects', { scroll: false });
+  }, [hasUnsavedChanges, isSaving, linkedProjectId, router]);
 
   const handleError = useCallback(
     (requestError: unknown, fallback: string) => {
@@ -289,6 +301,15 @@ export default function ProjectsPage() {
     },
     [handleError],
   );
+
+  useEffect(() => {
+    if (!linkedProjectId) return;
+    setSelectedId(linkedProjectId);
+    setSelectedDetail(null);
+    setActiveTab(linkedTab === 'tasks' || linkedTab === 'operation' ? linkedTab : 'general');
+    setError('');
+    void loadDetail(linkedProjectId);
+  }, [linkedProjectId, linkedTab, loadDetail]);
 
   useEffect(() => {
     void loadData();
@@ -2386,5 +2407,13 @@ export default function ProjectsPage() {
         />
       ) : null}
     </section>
+  );
+}
+
+export default function ProjectsPage() {
+  return (
+    <Suspense fallback={<p>İşler yükleniyor…</p>}>
+      <ProjectsWorkspace />
+    </Suspense>
   );
 }

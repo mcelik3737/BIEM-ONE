@@ -37,6 +37,7 @@ async function openCompletedOrder() {
   await order.getByText('RF feeder · 100/100 metre', { exact: true }).waitFor();
   assert.match(await order.innerText(), /1\.200,00/);
   assert.match(await order.innerText(), /USD|\$/);
+  await order.scrollIntoViewIfNeeded();
 }
 
 try {
@@ -47,8 +48,51 @@ try {
   await page.getByRole('button', { name: 'Giriş Yap', exact: true }).click();
   await page.waitForURL('**/dashboard');
   await page.getByRole('button', { name: 'Çıkış Yap', exact: true }).waitFor();
+  await page.getByRole('link', { name: /^Geciken görevler:/ }).waitFor();
   await page.screenshot({ path: `${output}/dashboard.png`, fullPage: true });
   pass('Korumalı sayfa girişe yönlendiriyor; gerçek giriş ve gösterge paneli açılıyor');
+
+  await page.getByRole('link', { name: /^Geciken görevler:/ }).click();
+  await page.waitForURL('**/tasks?view=overdue');
+  const taskRow = page.locator('.task-record').filter({ has: page.locator(`#task-${fixture.taskId}`) });
+  await taskRow.getByRole('button', { name: 'Tamamla', exact: true }).click();
+  await taskRow.waitFor({ state: 'hidden' });
+  await page.getByRole('link', { name: 'Tamamlananlar', exact: true }).click();
+  await page.waitForURL('**/tasks?view=done');
+  await page.reload();
+  await taskRow.getByRole('button', { name: 'Yeniden Aç', exact: true }).click();
+  await taskRow.waitFor({ state: 'hidden' });
+  await page.getByRole('link', { name: 'Gecikenler', exact: true }).click();
+  await page.waitForURL('**/tasks?view=overdue');
+  await taskRow.getByRole('button', { name: 'Düzenle', exact: true }).click();
+  const editedTitle = `Düzenlenmiş saha kontrolü ${browserRunId}`;
+  await page.getByLabel('Görev başlığı', { exact: true }).fill(editedTitle);
+  await page.getByRole('button', { name: 'Kaydet', exact: true }).click();
+  await taskRow.getByRole('heading', { name: editedTitle, exact: true }).waitFor();
+  await taskRow.getByRole('link').click();
+  await page.getByRole('dialog').locator('.task-row').getByText(editedTitle, { exact: true }).waitFor();
+  await page.reload();
+  await page.getByRole('dialog').locator('.task-row').getByText(editedTitle, { exact: true }).waitFor();
+  pass('Geciken görev kartı → görev panosu → tamamlama/yeniden açma/düzenleme → ilgili iş dosyası ve yenileme');
+
+  await page.goto(`${origin}/tasks`);
+  await page.getByRole('button', { name: '+ Yeni Görev', exact: true }).click();
+  const newTaskTitle = `Tarayıcı görevi ${browserRunId}`;
+  await page.getByLabel('Görev başlığı', { exact: true }).fill(newTaskTitle);
+  await page.getByRole('combobox', { name: /^Bağlı iş/ }).selectOption(fixture.projectId);
+  await page.getByLabel('Termin', { exact: true }).fill('2000-01-02');
+  await page.getByRole('button', { name: 'Kaydet', exact: true }).click();
+  await page.locator('.task-board-form').waitFor({ state: 'hidden' });
+  await page.reload();
+  await page.getByRole('heading', { name: newTaskTitle, exact: true }).waitFor();
+  await page.getByLabel('Görev veya iş ara', { exact: true }).fill(newTaskTitle);
+  assert.equal(await page.locator('.task-record').count(), 1);
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.locator('.task-record').scrollIntoViewIfNeeded();
+  assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), true, 'Görev panosu mobil ekranda taşıyor');
+  await page.screenshot({ path: `${output}/tasks-mobile.png`, fullPage: true });
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  pass('Panodan yeni görev oluşturma, arama, kalıcılık ve 390px mobil görünüm');
 
   // A failed session check is a connection problem, not proof of an invalid login.
   await page.route('**/api/v1/auth/me', route => route.abort('failed'), { times: 1 });
