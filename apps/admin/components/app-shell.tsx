@@ -5,6 +5,7 @@ import Image from 'next/image';
 import { ReactNode, useEffect, useState } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { navigationItems } from '../lib/navigation';
+import { hrManager } from '../lib/personnel-client';
 import {
   AuthUser,
   SessionExpiredError,
@@ -111,12 +112,14 @@ export function AppShell({ children }: AppShellProps) {
         </div>
 
         <nav className="sidebar-nav">
-          {navigationItems.map((item) => (
-            <Link key={item.href} href={item.href} className="nav-link">
-              <span>{item.label}</span>
-              <small>{item.description}</small>
-            </Link>
-          ))}
+          {navigationItems
+            .filter((item) => item.href !== '/personnel' || hrManager(user?.roles ?? []))
+            .map((item) => (
+              <Link key={item.href} href={item.href} className="nav-link">
+                <span>{item.label}</span>
+                <small>{item.description}</small>
+              </Link>
+            ))}
         </nav>
       </aside>
 

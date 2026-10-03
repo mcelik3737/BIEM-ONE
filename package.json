@@ -12,10 +12,12 @@
     "db:generate": "pnpm --filter @biem-one/api exec prisma generate",
     "db:migrate": "pnpm --filter @biem-one/api exec prisma migrate dev",
     "db:seed": "pnpm --filter @biem-one/api exec prisma db seed",
+    "db:upgrade:personnel": "pnpm --filter @biem-one/api exec prisma db execute --file prisma/upgrades/20261004_personnel.sql --schema prisma/schema.prisma",
     "start:local": "node scripts/start.mjs",
     "typecheck": "pnpm --filter @biem-one/api exec tsc --noEmit && pnpm --filter @biem-one/admin exec tsc --noEmit",
     "test:acceptance": "node scripts/acceptance.mjs",
-    "test:browser": "node scripts/browser-smoke.mjs"
+    "test:browser": "node scripts/browser-smoke.mjs",
+    "test:personnel:browser": "node scripts/browser-personnel.mjs"
   },
   "devDependencies": {
     "playwright": "1.62.1",

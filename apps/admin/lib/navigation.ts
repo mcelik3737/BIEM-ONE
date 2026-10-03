@@ -29,4 +29,9 @@ export const navigationItems = [
     href: '/settings',
     description: 'Planlanan yönetim araçları.',
   },
+  {
+    label: 'Personel / İK',
+    href: '/personnel',
+    description: 'Görev tanımları, İSG belgeleri, puantaj ve işçilik maliyeti.',
+  },
 ] as const;

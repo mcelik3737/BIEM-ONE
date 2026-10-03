@@ -37,7 +37,7 @@ jobs:
       - run: pnpm db:generate
       - name: Initialize disposable CI database
         run: |
-          pnpm --filter @biem-one/api exec prisma db push
+          node scripts/test-personnel-upgrade.mjs
           pnpm db:seed
       - run: pnpm build
       - run: pnpm lint
@@ -50,6 +50,7 @@ jobs:
           timeout 60 bash -c 'until curl --fail --silent http://localhost:3000/api/v1/health && curl --fail --silent http://localhost:3001/login > /dev/null; do sleep 1; done'
           pnpm test:acceptance
           pnpm test:browser
+          node scripts/browser-personnel.mjs
       - name: Retain browser evidence
         if: always()
         uses: actions/upload-artifact@v4

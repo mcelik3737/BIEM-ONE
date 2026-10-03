@@ -106,6 +106,7 @@ model Company {
   suppliers             Supplier[]
   purchaseOrders        PurchaseOrder[]
   purchaseOrderCounters PurchaseOrderCounter[]
+  employees             Employee[]
 }
 
 model User {
@@ -130,6 +131,7 @@ model User {
   managedOperations       ProjectOperation[]     @relation("OperationManager")
   createdPurchaseOrders   PurchaseOrder[]        @relation("PurchaseOrderCreatedBy")
   approvedPurchaseOrders  PurchaseOrder[]        @relation("PurchaseOrderApprovedBy")
+  employee                Employee?
 }
 
 model Role {
@@ -278,6 +280,7 @@ model Project {
   timelineEvents       TimelineEvent[]
   checklistItems       ProjectChecklistItem[]
   operation            ProjectOperation?
+  employeeTimeEntries  EmployeeTimeEntry[]
 }
 
 model ProjectOperation {
@@ -496,4 +499,92 @@ model TimelineEvent {
   occurredAt DateTime @default(now())
   project    Project? @relation(fields: [projectId], references: [id], onDelete: SetNull)
   actor      User?    @relation(fields: [actorId], references: [id], onDelete: SetNull)
+}
+
+model Employee {
+  id             String   @id @default(cuid())
+  companyId      String
+  userId         String?  @unique
+  fullName       String
+  jobTitle       String
+  jobDescription String?
+  department     String?
+  email          String?
+  phone          String?
+  startDate      DateTime @db.Date
+  endDate        DateTime? @db.Date
+  isActive       Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  company        Company  @relation(fields: [companyId], references: [id], onDelete: Restrict)
+  user           User?    @relation(fields: [userId], references: [id], onDelete: Restrict)
+  compensations  EmployeeCompensation[]
+  documents      EmployeeDocument[]
+  timeEntries    EmployeeTimeEntry[]
+
+  @@index([companyId, isActive])
+}
+
+model EmployeeCompensation {
+  id                  String   @id @default(cuid())
+  employeeId          String
+  effectiveFrom       DateTime @db.Date
+  salaryBasis         String
+  monthlySalary       Decimal @db.Decimal(18, 2)
+  monthlyEmployerCost Decimal @db.Decimal(18, 2)
+  monthlyHours        Decimal @db.Decimal(8, 2)
+  currency            String
+  createdAt           DateTime @default(now())
+  employee            Employee @relation(fields: [employeeId], references: [id], onDelete: Restrict)
+  timeEntries         EmployeeTimeEntry[]
+
+  @@unique([employeeId, effectiveFrom])
+}
+
+model EmployeeDocument {
+  id             String   @id @default(cuid())
+  employeeId     String
+  title          String
+  isRequired     Boolean @default(true)
+  expiryRequired Boolean @default(true)
+  issuedAt       DateTime? @db.Date
+  expiresAt      DateTime? @db.Date
+  notes          String?
+  fileName       String?
+  mimeType       String?
+  fileData       Bytes?
+  reviewedAt     DateTime?
+  reviewedById   String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  employee       Employee @relation(fields: [employeeId], references: [id], onDelete: Restrict)
+
+  @@index([employeeId])
+}
+
+model EmployeeTimeEntry {
+  id             String   @id @default(cuid())
+  employeeId     String
+  projectId      String?
+  workDate       DateTime @db.Date
+  kind           String
+  hours          Decimal @db.Decimal(5, 2)
+  costMultiplier Decimal @default(1) @db.Decimal(5, 2)
+  description    String
+  status         String @default("DRAFT")
+  compensationId String?
+  hourlyCost     Decimal? @db.Decimal(18, 6)
+  totalCost      Decimal? @db.Decimal(18, 2)
+  currency       String?
+  approvedAt     DateTime?
+  approvedById   String?
+  voidReason     String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  employee       Employee @relation(fields: [employeeId], references: [id], onDelete: Restrict)
+  project        Project? @relation(fields: [projectId], references: [id], onDelete: Restrict)
+  compensation   EmployeeCompensation? @relation(fields: [compensationId], references: [id], onDelete: Restrict)
+
+  @@index([employeeId, workDate])
+  @@index([projectId, status])
 }

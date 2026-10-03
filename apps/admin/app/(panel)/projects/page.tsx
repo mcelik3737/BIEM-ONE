@@ -44,6 +44,8 @@ import {
 } from '../../../lib/projects-client';
 import { AuthUser, fetchCurrentUser } from '../../../lib/auth-client';
 import { ProcurementPanel } from '../../../components/procurement-panel';
+import { ProjectLaborSummary } from '../../../components/project-labor-summary';
+import { hrManager } from '../../../lib/personnel-client';
 import { BusinessEntityModal } from '../../../components/business-entity-modal';
 
 const stages = [
@@ -1750,6 +1752,9 @@ function ProjectsWorkspace() {
                     </button>
                   ) : null}
                 </div>
+                {operation && activeTab === 'operation' && hrManager(currentUser?.roles ?? []) ? (
+                  <ProjectLaborSummary projectId={selectedProject.id} />
+                ) : null}
                 {operation ? (
                   <>
                     <div className="operation-stage-header">
