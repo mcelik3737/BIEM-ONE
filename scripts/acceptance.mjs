@@ -3,6 +3,7 @@ import { createRequire } from 'node:module';
 import { randomBytes } from 'node:crypto';
 import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
+import { checkPersonnel } from './acceptance-personnel.mjs';
 const root = fileURLToPath(new URL('../', import.meta.url));
 process.chdir(root);
 // CI supplies its disposable database settings directly, without a local .env.
@@ -126,8 +127,9 @@ try {
   assert.equal(persisted.items[0].receivedQuantity.toString(), '100');
   assert.equal((await request(orderPath, token)).grandTotal, '1200');
   pass('Veritabanından ve yeni HTTP isteğinden kalıcılık doğrulandı');
+  const personnel = await checkPersonnel({ request, token, engineerToken, otherToken, engineer, other, project, pass, runId, base });
   mkdirSync('.runtime', { recursive: true });
-  writeFileSync('.runtime/acceptance-session.json', JSON.stringify({ email: admin.email, password, projectId: project.id, orderId: order.id, customerId: customer.id, supplierId: supplier.id, taskId: task.id, taskTitle, runId }));
+  writeFileSync('.runtime/acceptance-session.json', JSON.stringify({ email: admin.email, password, projectId: project.id, orderId: order.id, customerId: customer.id, supplierId: supplier.id, taskId: task.id, taskTitle, runId, ...personnel }));
   writeFileSync('.runtime/acceptance-results.json', JSON.stringify({ date: new Date().toISOString(), runId, checks, projectId: project.id }, null, 2));
   console.log(`Tamamlandı: ${checks.length} kabul grubu. Ayrı test şirketleri korundu; kimlik bilgileri yalnızca .runtime içinde.`);
 } finally { await db.$disconnect(); }

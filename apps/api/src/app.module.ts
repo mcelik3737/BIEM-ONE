@@ -16,6 +16,7 @@ import { TasksModule } from './modules/tasks/tasks.module';
 import { TimelineEventsModule } from './modules/timeline-events/timeline-events.module';
 import { ProcurementModule } from './modules/procurement/procurement.module';
 import { UsersModule } from './modules/users/users.module';
+import { PersonnelModule } from './modules/personnel/personnel.module';
 
 @Module({
   imports: [
@@ -38,6 +39,7 @@ import { UsersModule } from './modules/users/users.module';
     AuditLogsModule,
     TimelineEventsModule,
     ProcurementModule,
+    PersonnelModule,
   ],
   controllers: [HealthController],
 })
