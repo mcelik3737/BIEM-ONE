@@ -1,0 +1,29 @@
+schema: spec-driven
+
+context: |
+  BIEM-ONE is an existing Turkish operations application, not a greenfield rewrite.
+  Stack: TypeScript, NestJS, Next.js 15, Prisma 6, PostgreSQL; pnpm workspace.
+  Read AGENTS.md, docs/NEXT_WORK.md and docs/product/WORKFLOW_RULES.md first.
+  One won Project has one ProjectOperation. All access is company-scoped.
+  Personnel salary and private documents remain admin-only.
+  Keep money calculations in server-side Prisma.Decimal and currencies separate.
+  Preserve user changes and existing data; no reset, force push or accept-data-loss.
+  Product text is Turkish. Requirements and scenarios must describe observable behavior.
+  The user expects agents to carry work forward without asking them to relay files.
+  Existing authorization continues; only unresolved consequential choices require clarification.
+  A written plan is not a shipped feature. Record implementation and verification separately.
+
+rules:
+  proposal:
+    - Cite the current implementation and explain the concrete gap.
+    - State the smallest complete change and how it fits docs/NEXT_WORK.md.
+  specs:
+    - Give every requirement at least one WHEN/THEN scenario.
+    - Cover missing data, role and company boundaries, and failure states where relevant.
+    - Never describe an unimplemented gate as enforced or a plan as a deployed feature.
+  design:
+    - Explain data preservation, compatibility, and rollout before changing live rules.
+    - Prefer the existing stack; justify each new dependency with a concrete need.
+  tasks:
+    - Include a verifiable completion condition in each task; keep unfinished work unchecked.
+    - Test meaningful behavior in an isolated database; do not seed test businesses into live data.
