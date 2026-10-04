@@ -25,4 +25,4 @@ Yok. Mevcut aşama geçişleri, İK erişimi ve satınalma işlemleri korunur.
 
 API projects modülü, yönetim arayüzünün operasyon paneli, API ve tarayıcı kabul senaryoları. Şema/veri göçü veya yeni çalışma zamanı bağımlılığı gerekmez. Referanslar `docs/product/WORKFLOW_REPO_SUPPORT.md` içindedir.
 
-Durum: **tanımlandı, ürün kodu henüz uygulanmadı**.
+Durum: **ürün kodu uygulandı ve izole ortamda doğrulandı; Windows kurulumu bağlantı bekliyor**. Güncel kanıt ve açık teslim adımı `tasks.md` ve `docs/NEXT_WORK.md` içindedir.

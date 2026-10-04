@@ -1,6 +1,6 @@
 # Sonraki işler — tek takip listesi
 
-Bu liste, teslim edilen müşteri–iş–BOM–satınalma–teslim çekirdeğinden sonraki kapsamdır. Buradaki maddeler çalışan özellik olarak sunulmaz.
+Bu liste, teslim edilen müşteri–iş–BOM–satınalma–teslim çekirdeğinden sonraki kapsamı ve teslim durumunu izler. Kod doğrulaması ile Windows'ta çalışan sürüm ayrı kaydedilir; planlanan maddeler çalışan özellik olarak sunulmaz.
 
 ## Yürütme sırası — 4 Ekim 2026
 
@@ -8,8 +8,8 @@ Kullanıcı önceliği değiştirirse bu sıra güncellenir. Ajan, eldeki yetki 
 
 | Sıra | Teslim | Durum | Bitti sayılma ölçütü |
 | --- | --- | --- | --- |
-| W00 | Repo destekli kural haritası ve ortak geliştirme düzeni | Bu dokümantasyon değişikliği | Kaynak sürümleri, mevcut/hedef ayrımı, öncelikler ve ilk değişiklik senaryoları repoda |
-| W01 | Operasyon hazırlık görünümü | Tanımlandı; uygulanmadı | Eksik hazırlık bilgisi ve düzeltme bağlantısı; uygulanmamış denetim açık; şirket/rol, hata, kalıcılık ve mobil testleri geçti |
+| W00 | Repo destekli kural haritası ve ortak geliştirme düzeni | Tamamlandı; `ec9836d` ile GitHub ve Windows'ta | Kaynak sürümleri, mevcut/hedef ayrımı, öncelikler ve ilk değişiklik senaryoları repoda |
+| W01 | Operasyon hazırlık görünümü | GitHub'da doğrulandı; Windows bağlantısı bekleniyor | Eksik hazırlık bilgisi ve düzeltme bağlantısı; uygulanmamış denetim açık; şirket/rol, hata, kalıcılık ve mobil testleri geçti |
 | W02 | Proje ekip ataması ve İSG/saha geçiş kuralları | Planlandı | Atanmış ekip saha tarihleriyle değerlendirilir; eksik/süresi dolan belge geçişi durdurur; geçmiş işler kontrollü sürüm geçişiyle korunur |
 | W03 | Test, SAT/kabul ve teslim dosyası | Planlandı | Projeye özgü ölçüm kriteri ve sonuç, kritik kusur/düzeltme, onay ve belge revizyonu birlikte doğrulanır |
 | W04 | Satınalma teslim fişi, iade ve tekrar güvenliği | Planlandı | Kısmi teslim/iade geçmişi korunur; aynı ağ isteği miktarı iki kez artırmaz |
@@ -19,9 +19,19 @@ Kullanıcı önceliği değiştirirse bu sıra güncellenir. Ajan, eldeki yetki 
 
 W01 uygulama paketi: `../openspec/changes/operation-readiness/`. Kurallar: `product/WORKFLOW_RULES.md`. Repo seçimi: `product/WORKFLOW_REPO_SUPPORT.md`.
 
-### Doğrulanmış son ürün teslimi
+### Doğrulanmış son Windows ürün teslimi
 
 `7e7ce108103467fe94de67aec0ca20e805d71eb3`: Personel / İK ve onaylı puantaj maliyeti. 4 Ekim 2026 Windows güncellemesinde yedek alındı; mevcut 24 tablonun içeriği şema yükseltmesi öncesi/sonrası karşılaştırılarak korunduğu doğrulandı. Üretim derlemesi, mevcut yöneticiyle giriş, hazırlanan personel formu, maliyet ekranı ve mobil görünüm kontrolü başarılı. Bu sonuç W01 veya sonraki işlerin uygulandığı anlamına gelmez.
+
+### W01 teslim kaydı — 4 Ekim 2026
+
+İş Dosyası → Operasyon içindeki hazırlık kontrolü; sorumlu, tarihler, sonraki aksiyon ve zorunlu keşif maddelerini değerlendirir. Eksik kartları ilgili düzenleme alanına gider. İSG/ekip ve test/kabul için ayrı değerlendirme gerekliliği açıkça gösterilir. API sözleşmesi: `OPERATION_READINESS.md`.
+
+- Kod: [PR #6](https://github.com/mcelik3737/BIEM-ONE/pull/6). Şema veya yeni bağımlılık yok.
+- Doğrulanan ürün kodu: `06c3eb15a4c7ccb6aa9e44d6d3a59b8fd893bb92`. [CI 37169126234](https://github.com/mcelik3737/BIEM-ONE/actions/runs/37169126234) başarılı: build, lint, typecheck, mevcut veriyi koruyan personel şema yükseltme provası, 24 API ve 16 tarayıcı kabul grubu (8 çekirdek + 4 İK + 4 hazırlık). Testler ayrı CI veritabanındadır.
+- Hazırlık doğrulaması: kategori/sorumlu/tarih/aksiyon düzeltmesi, müşteri ve iş sahibi bağlantılarının korunması, zorunlu keşif maddeleri, yenilemede kalıcılık, ağ hatası/tekrar deneme ve 390px görünüm. Masaüstü ve mobil ekran görüntüleri incelendi; test kanıtı CI'nin `browser-evidence` çıktısında.
+- Windows: Desktop Commander çevrimdışı olduğu için W01 yerel kuruluma uygulanmadı. Son bilinen çalışma kopyası `ec9836d`; önceki Personel / İK teslimidir.
+- Devam: cihaz bağlandığında çalışma kopyasının değişikliklerini kontrol et, doğrulanmış ana dalı fast-forward ile al, standart başlatıcıyla API/admin derlemesini güncelle ve mevcut veriyi değiştirmeden hazırlık görünümünü doğrula. Canlı veritabanında kabul testlerini veya test verisi oluşturmayı çalıştırma.
 
 ## Kalan kapsam ve ayrıntılar
 

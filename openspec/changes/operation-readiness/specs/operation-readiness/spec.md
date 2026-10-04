@@ -54,6 +54,10 @@ The system SHALL calculate readiness without modifying projects, checklists, per
 - **WHEN** aynı hazırlık görünümü iki kez açılır
 - **THEN** yeni görev, kontrol maddesi veya zaman çizelgesi olayı üretilmez.
 
+#### Scenario: Category correction preserves business relationships
+- **WHEN** kullanıcı hazırlık kartından iş kategorisini düzeltir
+- **THEN** Teknik form açılır; kayıt isteği müşteri ve iş sahibi alanlarına yazmaz ve mevcut bağlantılar korunur.
+
 ### Requirement: Recovery and accessible presentation
 
 The system SHALL show loading and retryable failures explicitly, offer correction links for missing input, and fit a 390px viewport. Refresh SHALL recompute checks from persisted data.

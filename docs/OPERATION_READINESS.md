@@ -2,6 +2,8 @@
 
 Kazanılmış bir işin **İş Dosyası → Operasyon → Hazırlık kontrolü** alanında mevcut kayıtlar değerlendirilir. Eksik kartındaki düğme ilgili form alanını veya Kontrol Listesi bölümünü açar. Kaydetme, operasyon sekmesine dönüş ve sayfa yenilemesi sonrasında sunucudan yeni değerlendirme alınır.
 
+Kategori düzeltmesi Teknik formundaki İş Kategorisi alanını açar. Bu kayıt isteği müşteri ve iş sahibi alanlarını içermez; mevcut bağlantılar korunur.
+
 ## Denetlenen bilgiler
 
 - Operasyon sorumlusu aynı şirkette ve aktif olmalıdır.
