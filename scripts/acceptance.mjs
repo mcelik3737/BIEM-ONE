@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { checkReadiness } from './acceptance-readiness.mjs';
 import { createRequire } from 'node:module';
 import { randomBytes } from 'node:crypto';
 import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
@@ -28,7 +29,7 @@ try {
   await request('/health'); pass('API health');
   await login(process.env.SEED_ADMIN_EMAIL, process.env.SEED_ADMIN_PASSWORD); pass('Yapılandırılmış yönetici hesabıyla giriş');
   const passwordHash = await hash(password, 10);
-  for (const code of ['COMPANY_ADMIN', 'FIELD_ENGINEER']) await db.role.upsert({ where: { code }, update: {}, create: { code, name: code } });
+  for (const code of ['COMPANY_ADMIN', 'FIELD_ENGINEER', 'PROJECT_MANAGER']) await db.role.upsert({ where: { code }, update: {}, create: { code, name: code } });
   const companyA = await db.company.create({ data: { name: `KABUL TESTİ A ${runId}`, slug: `${runId}-a` } });
   const companyB = await db.company.create({ data: { name: `KABUL TESTİ B ${runId}`, slug: `${runId}-b` } });
   async function user(company, role, suffix) {
@@ -36,9 +37,11 @@ try {
   }
   const admin = await user(companyA, 'COMPANY_ADMIN', 'admin');
   const engineer = await user(companyA, 'FIELD_ENGINEER', 'engineer');
+  const manager = await user(companyA, 'PROJECT_MANAGER', 'manager');
   const other = await user(companyB, 'COMPANY_ADMIN', 'other');
   const token = (await login(admin.email)).tokens.accessToken;
   const engineerToken = (await login(engineer.email)).tokens.accessToken;
+  const managerToken = (await login(manager.email)).tokens.accessToken;
   const otherToken = (await login(other.email)).tokens.accessToken;
   const customer = await request('/customers', token, 'POST', { name: `Kabul RF Müşteri ${runId}`, email: '' }, 201);
   const supplier = await request('/suppliers', token, 'POST', { name: `Kabul RF Tedarikçi ${runId}`, email: '' }, 201);
@@ -128,8 +131,9 @@ try {
   assert.equal((await request(orderPath, token)).grandTotal, '1200');
   pass('Veritabanından ve yeni HTTP isteğinden kalıcılık doğrulandı');
   const personnel = await checkPersonnel({ request, token, engineerToken, otherToken, engineer, other, project, pass, runId, base });
+  const readiness = await checkReadiness({ db, request, token, engineerToken, otherToken, managerToken, admin, other, customer, companyA, user, pass, runId });
   mkdirSync('.runtime', { recursive: true });
-  writeFileSync('.runtime/acceptance-session.json', JSON.stringify({ email: admin.email, password, projectId: project.id, orderId: order.id, customerId: customer.id, supplierId: supplier.id, taskId: task.id, taskTitle, runId, ...personnel }));
+  writeFileSync('.runtime/acceptance-session.json', JSON.stringify({ email: admin.email, password, projectId: project.id, orderId: order.id, customerId: customer.id, supplierId: supplier.id, taskId: task.id, taskTitle, runId, ...personnel, ...readiness }));
   writeFileSync('.runtime/acceptance-results.json', JSON.stringify({ date: new Date().toISOString(), runId, checks, projectId: project.id }, null, 2));
   console.log(`Tamamlandı: ${checks.length} kabul grubu. Ayrı test şirketleri korundu; kimlik bilgileri yalnızca .runtime içinde.`);
 } finally { await db.$disconnect(); }

@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Patch, Post, Req, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Header, Param, Patch, Post, Req, UseGuards } from '@nestjs/common';
 import {
   ApiBearerAuth,
   ApiCreatedResponse,
@@ -147,6 +147,14 @@ export class ProjectsController {
   @ApiOperation({ summary: 'Get the tenant-secure operation for a won work file' })
   getOperation(@Param('id') id: string, @Req() request: RequestWithUser) {
     return this.projectsService.getOperation(id, request.user.companyId);
+  }
+
+  @Get(':id/operation/readiness')
+  @Header('Cache-Control', 'no-store')
+  @ApiOperation({ summary: 'Read advisory operation readiness without changing any records' })
+  @ApiOkResponse({ description: 'Current preparation checks; not field-safety approval.' })
+  getOperationReadiness(@Param('id') id: string, @Req() request: RequestWithUser) {
+    return this.projectsService.getOperationReadiness(id, request.user.companyId);
   }
 
   @Patch(':id/operation')
