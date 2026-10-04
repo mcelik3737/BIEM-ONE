@@ -31,7 +31,7 @@ try {
   await panel.getByRole('button', { name: 'Kategori seç', exact: true }).click();
   assert.equal(await page.evaluate(() => document.activeElement?.getAttribute('name')), 'category');
   await drawer.locator('select[name="category"]').selectOption('RADIO_COMMUNICATION');
-  await drawer.getByRole('button', { name: 'Kaydet', exact: true }).click();
+  await drawer.locator('.drawer-edit-form').getByRole('button', { name: 'Kaydet', exact: true }).click();
   await drawer.locator('.drawer-edit-form').waitFor({ state: 'hidden' });
   await drawer.getByRole('button', { name: 'Operasyon', exact: true }).click();
   await checkRow('DISCOVERY_CHECKLIST').getByText('Eksik', { exact: true }).waitFor();
