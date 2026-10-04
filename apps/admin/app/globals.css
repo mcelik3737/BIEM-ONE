@@ -2104,7 +2104,7 @@ textarea {
     padding: 1rem;
   }
 }
-.readiness-panel {
+.operation-readiness-panel {
   padding: 1.25rem;
   border: 1px solid #d8c8b8;
   border-radius: 18px;
@@ -2177,7 +2177,7 @@ textarea {
   .readiness-list {
     grid-template-columns: minmax(0, 1fr);
   }
-  .readiness-panel {
+  .operation-readiness-panel {
     padding: 1rem;
   }
 }

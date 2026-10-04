@@ -778,7 +778,8 @@ function ProjectsWorkspace() {
   }
 
   function handleReadinessCorrection(target: ReadinessTarget) {
-    if (isSaving || !confirmDiscardChanges()) return;
+    if (!selectedProject || isSaving || !confirmDiscardChanges()) return;
+    if (target === 'CATEGORY') setEditCustomerId(selectedProject.customer?.id ?? '');
     setActiveTab(
       target === 'CHECKLIST' ? 'checklist' : target === 'CATEGORY' ? 'general' : 'operation',
     );

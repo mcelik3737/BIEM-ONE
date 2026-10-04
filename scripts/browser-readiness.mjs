@@ -30,8 +30,13 @@ try {
   await page.goto(projectUrl);
   await panel.getByRole('button', { name: 'Kategori seç', exact: true }).click();
   assert.equal(await page.evaluate(() => document.activeElement?.getAttribute('name')), 'category');
+  assert.equal(await drawer.locator('select[name="customerId"]').inputValue(), fixture.customerId, 'Kategori düzeltmesi mevcut müşteriyi korumalı');
   await drawer.locator('select[name="category"]').selectOption('RADIO_COMMUNICATION');
+  const categorySaved = page.waitForResponse(response => response.url().endsWith(`/projects/${fixture.readinessProjectId}`) && response.request().method() === 'PATCH');
   await drawer.locator('.drawer-edit-form').getByRole('button', { name: 'Kaydet', exact: true }).click();
+  const categoryResponse = await categorySaved;
+  assert.equal(categoryResponse.status(), 200);
+  assert.equal((await categoryResponse.json()).customer.id, fixture.customerId, 'Kategori kaydı müşteri bağlantısını değiştirmemeli');
   await drawer.locator('.drawer-edit-form').waitFor({ state: 'hidden' });
   await drawer.getByRole('button', { name: 'Operasyon', exact: true }).click();
   await checkRow('DISCOVERY_CHECKLIST').getByText('Eksik', { exact: true }).waitFor();
@@ -51,7 +56,7 @@ try {
   await operationForm.getByRole('button', { name: 'Kaydet', exact: true }).click();
   await operationForm.waitFor({ state: 'hidden' });
   for (const code of ['OPERATION_MANAGER', 'PLANNED_DATES', 'NEXT_ACTION']) await checkRow(code).getByText('Tamam', { exact: true }).waitFor();
-  pass('Hazırlık eksiklerinden kategori/sorumlu/tarih/aksiyon alanına odaklanma ve kayıt sonrası güncel sonuç');
+  pass('Hazırlık eksiklerini düzeltme, müşteri bağlantısını koruma ve kayıt sonrası güncel sonuç');
 
   await panel.getByRole('button', { name: 'Kontrol listesini aç', exact: true }).click();
   const required = drawer.locator('.checklist-row').filter({ hasText: 'Zorunlu' });
@@ -92,7 +97,9 @@ try {
   await panel.scrollIntoViewIfNeeded();
   assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), true, 'Mobil sayfa yatay taşıyor');
   assert.equal(await drawer.evaluate(element => element.scrollWidth <= element.clientWidth), true, 'Mobil iş dosyası yatay taşıyor');
-  await page.screenshot({ path: `${output}/readiness-mobile.png`, fullPage: true });
+  await page.screenshot({ path: `${output}/readiness-mobile.png` });
+  await checkRow('ACCEPTANCE_EVIDENCE').scrollIntoViewIfNeeded();
+  await page.screenshot({ path: `${output}/readiness-mobile-bottom.png` });
   assert.deepEqual(errors, []);
   pass('390px mobil görünüm ve JavaScript hatası olmadan hazırlık listesi');
   writeFileSync(`${output}/readiness-results.json`, JSON.stringify({ time: new Date().toISOString(), checks }, null, 2));

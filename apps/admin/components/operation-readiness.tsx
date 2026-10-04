@@ -58,7 +58,7 @@ export function OperationReadinessPanel({
   }, [projectId, attempt, router]);
 
   return (
-    <section className="readiness-panel" aria-labelledby="readiness-title">
+    <section className="operation-readiness-panel" aria-labelledby="readiness-title">
       <div className="readiness-heading">
         <h3 id="readiness-title">Hazırlık kontrolü</h3>
         <button
