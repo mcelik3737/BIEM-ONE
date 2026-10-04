@@ -1,5 +1,16 @@
 # BIEM ONE Master Plan
 
+## Güncel uygulama kaydı — 4 Ekim 2026
+
+Hedef: müşteri talebi, satış, teknik çalışma, satınalma, saha, personel, gerçek maliyet ve teslim/bakımı tek İş Dosyasında izlemek. Çalışan sürüm `7e7ce10`; Personel / İK güncellemesi Windows üzerinde doğrulandı.
+
+- [Sıralı teslim listesi ve durum](../NEXT_WORK.md)
+- [İşleyiş diyagramı, geçiş kuralları ve mevcut eksikler](WORKFLOW_RULES.md)
+- [Repo kaynakları ve seçim gerekçesi](WORKFLOW_REPO_SUPPORT.md)
+- [İlk uygulama: operasyon hazırlık görünümü](../../openspec/changes/operation-readiness/proposal.md)
+
+Güncel uygulama önceliği NEXT_WORK.md içindedir. Aşağıdaki ilk vizyon ve fazlar ürünün kapsam referansıdır; tamamlanmış özellik veya ayrı bir görev listesi değildir.
+
 ## Product Vision
 
 BIEM ONE is the operational system for Biem Teknoloji. It should centralize customer management, project delivery, field activity, maintenance workflows, task coordination, documents, notifications, workflow automation, and AI-assisted analysis.
