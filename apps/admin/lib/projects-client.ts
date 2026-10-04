@@ -51,6 +51,20 @@ export interface ProjectOperation {
   purchaseOrders?: PurchaseOrder[];
 }
 export type BomItemType = 'URUN' | 'MALZEME' | 'HIZMET' | 'ISCILIK' | 'TASERON' | 'EKIPMAN';
+export type ReadinessTarget = 'MANAGER' | 'SCHEDULE' | 'NEXT_ACTION' | 'CATEGORY' | 'CHECKLIST';
+export interface OperationReadiness {
+  policyVersion: 'readiness-v1';
+  evaluatedAt: string;
+  advisoryOnly: true;
+  checks: Array<{
+    code: string;
+    label: string;
+    status: 'COMPLETE' | 'MISSING' | 'NOT_IMPLEMENTED';
+    description: string;
+    target: ReadinessTarget | null;
+    missingItems?: string[];
+  }>;
+}
 export type ProcurementStatus =
   | 'PLANLANDI'
   | 'TEKLIF_BEKLENIYOR'
@@ -348,6 +362,11 @@ export const updateTask = (
 ) => projectRequest<ProjectTask>(`/tasks/${id}`, { method: 'PATCH', body: JSON.stringify(input) });
 export const fetchProjectOperation = (id: string) =>
   projectRequest<ProjectOperation>(`/projects/${id}/operation`);
+export const fetchOperationReadiness = (id: string, signal: AbortSignal) =>
+  projectRequest<OperationReadiness>(`/projects/${id}/operation/readiness`, {
+    signal,
+    cache: 'no-store',
+  });
 export const updateProjectOperation = (
   id: string,
   input: Partial<{

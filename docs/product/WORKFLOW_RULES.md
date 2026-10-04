@@ -33,7 +33,7 @@ Bu hedef ilişkilerin görünümüdür. Mevcut operasyon aşama sırası bu belg
 | Alan | Mevcut davranış | Eksik |
 | --- | --- | --- |
 | Satış aşaması | İzinli geçişler, müşteri/sorumlu şartı, gerekçeli geri dönüş ve tek operasyon | Teklif revizyonu/onayı ve tüm zorunlu keşif maddelerini geçişte denetleme |
-| Operasyon | Aşama sırası ve zaman çizelgesi var | `advanceOperation` İSG, teslim/kabul kanıtı veya hazırlık koşullarını denetlemiyor |
+| Operasyon | Aşama sırası ve zaman çizelgesi var; W01 kodu hazırlık eksiklerini düzeltme alanlarına bağlar | `advanceOperation` İSG, teslim/kabul kanıtı veya hazırlık koşullarını denetlemiyor; W01 yerel dağıtım durumu `NEXT_WORK.md` içinde |
 | Keşif kontrol listesi | Kategoriye göre maddeler ve tamamlanma kaydı | `isRequired` bilgisi tek başına aşama engeli oluşturmuyor |
 | Satınalma | BOM, yönetici onayı, sipariş, kısmi teslim, fazla/eşzamanlı teslim denetimi | Teslim fişi, iade, stok ve işlem tekrar anahtarı |
 | Personel / İK | Özlük, ücret dönemleri, belge/geçerlilik, onaylı puantaj maliyeti | Projeye ekip atama, saha tarihi için belge uygunluğu, izin/masraf onayı |
@@ -75,7 +75,7 @@ Sorumlu iş rolünü ifade eder. Bugünkü hesap rolleri SUPER_ADMIN, COMPANY_AD
 
 ## İlk teslim ve sonrası
 
-W01: mevcut kayıtlardan operasyon hazırlığını okuyup eksik alan ve düzeltme bağlantısı gösterme. **Saha uygunluğu onayı değildir; mevcut geçişleri değiştirmez.** Ayrıntı: `openspec/changes/operation-readiness/`.
+W01 kodu uygulandı: mevcut kayıtlardan operasyon hazırlığını okuyup eksik alan ve düzeltme bağlantısı gösterir. **Saha uygunluğu onayı değildir; mevcut geçişleri değiştirmez.** Sözleşme: `../OPERATION_READINESS.md`. Doğrulama ve yerel dağıtım durumu: `../NEXT_WORK.md`. Uygulama paketi: `openspec/changes/operation-readiness/`.
 
 W02: proje ekip ataması, proje belge gereklilikleri, saha tarihlerine göre değerlendirme ve kontrollü etkinleştirilen geçiş engelleri. Belge revizyon/onay geçmişi ve proje kullanıcılarına açıklanacak güvenli özet bu işin parçasıdır.
 

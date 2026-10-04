@@ -25,6 +25,7 @@ import {
   ChecklistItem,
   OperationStage,
   ProjectOperation,
+  ReadinessTarget,
   addProjectNote,
   changeProjectStage,
   createProject,
@@ -45,6 +46,7 @@ import {
 import { AuthUser, fetchCurrentUser } from '../../../lib/auth-client';
 import { ProcurementPanel } from '../../../components/procurement-panel';
 import { ProjectLaborSummary } from '../../../components/project-labor-summary';
+import { OperationReadinessPanel } from '../../../components/operation-readiness';
 import { hrManager } from '../../../lib/personnel-client';
 import { BusinessEntityModal } from '../../../components/business-entity-modal';
 
@@ -195,6 +197,7 @@ function ProjectsWorkspace() {
   const [activeTab, setActiveTab] = useState<DrawerTab>('general');
   const [isEditing, setIsEditing] = useState(false);
   const [isOperationEditing, setIsOperationEditing] = useState(false);
+  const [readinessFocus, setReadinessFocus] = useState<ReadinessTarget | null>(null);
   const [timeline, setTimeline] = useState<TimelineEvent[]>([]);
   const [checklist, setChecklist] = useState<ChecklistItem[]>([]);
   const [currentUser, setCurrentUser] = useState<AuthUser | null>(null);
@@ -322,12 +325,30 @@ function ProjectsWorkspace() {
   useEffect(() => {
     if (selectedId) {
       void loadTimeline(selectedId);
-      void loadChecklist(selectedId);
     } else {
       setTimeline([]);
       setChecklist([]);
     }
-  }, [selectedId, loadTimeline, loadChecklist]);
+  }, [selectedId, loadTimeline]);
+  useEffect(() => {
+    if (selectedId && activeTab === 'checklist') void loadChecklist(selectedId);
+  }, [selectedId, activeTab, loadChecklist]);
+  useEffect(() => {
+    if (!readinessFocus) return;
+    const selectors: Record<ReadinessTarget, string> = {
+      MANAGER: '.operation-form [name="operationManagerId"]',
+      SCHEDULE: '.operation-form [name="plannedStartAt"]',
+      NEXT_ACTION: '.operation-form [name="nextAction"]',
+      CATEGORY: '.drawer-edit-form [name="category"]',
+      CHECKLIST: '#project-checklist',
+    };
+    const field = document.querySelector<HTMLElement>(selectors[readinessFocus]);
+    if (field) {
+      field.focus();
+      field.scrollIntoView({ block: 'center' });
+      setReadinessFocus(null);
+    }
+  }, [readinessFocus, isOperationEditing, isEditing, activeTab]);
   useEffect(() => {
     function handleEscape(event: globalThis.KeyboardEvent) {
       if (event.key === 'Escape' && selectedId && !isEditing) closeDrawer();
@@ -754,6 +775,18 @@ function ProjectsWorkspace() {
     setIsOperationEditing(false);
     setHasUnsavedChanges(false);
     setError('');
+  }
+
+  function handleReadinessCorrection(target: ReadinessTarget) {
+    if (!selectedProject || isSaving || !confirmDiscardChanges()) return;
+    setActiveTab(
+      target === 'CHECKLIST' ? 'checklist' : target === 'CATEGORY' ? 'technical' : 'operation',
+    );
+    setIsEditing(target === 'CATEGORY');
+    setIsOperationEditing(target !== 'CATEGORY' && target !== 'CHECKLIST');
+    setHasUnsavedChanges(false);
+    setError('');
+    setReadinessFocus(target);
   }
 
   function changeDrawerTab(tab: DrawerTab) {
@@ -1695,7 +1728,7 @@ function ProjectsWorkspace() {
               </section>
             ) : null}
             {activeTab === 'checklist' ? (
-              <section className="drawer-section">
+              <section className="drawer-section" id="project-checklist" tabIndex={-1}>
                 <div className="checklist-heading">
                   <div>
                     <h3>Kontrol Listesi</h3>
@@ -1752,6 +1785,13 @@ function ProjectsWorkspace() {
                     </button>
                   ) : null}
                 </div>
+                {operation && !isOperationEditing ? (
+                  <OperationReadinessPanel
+                    key={selectedProject.id}
+                    projectId={selectedProject.id}
+                    onCorrect={handleReadinessCorrection}
+                  />
+                ) : null}
                 {operation && activeTab === 'operation' && hrManager(currentUser?.roles ?? []) ? (
                   <ProjectLaborSummary projectId={selectedProject.id} />
                 ) : null}

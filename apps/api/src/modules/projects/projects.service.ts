@@ -11,6 +11,7 @@ import { UpdateProjectDto } from './dto/update-project.dto';
 import { UpdateChecklistItemDto } from './dto/update-checklist-item.dto';
 import { CompleteNextActionDto } from './dto/complete-next-action.dto';
 import { workflowTemplates } from './workflow-templates';
+import { operationReadiness } from './operation-readiness';
 import { AppRole } from '../../common/enums/app-role.enum';
 import { UpdateProjectOperationDto } from './dto/update-project-operation.dto';
 import { RevertOperationStageDto } from './dto/revert-operation-stage.dto';
@@ -413,6 +414,39 @@ export class ProjectsService {
     });
     if (!operation) throw new NotFoundException('Bu iş için operasyon kaydı bulunamadı.');
     return operation;
+  }
+
+  async getOperationReadiness(id: string, companyId: string) {
+    const operation = await this.prisma.projectOperation.findFirst({
+      where: { projectId: id, project: { companyId, stage: { code: 'KAZANILDI' } } },
+      select: {
+        operationManager: { select: { isActive: true, companyId: true } },
+        plannedStartAt: true,
+        plannedEndAt: true,
+        nextAction: true,
+        nextActionDueAt: true,
+        project: {
+          select: {
+            category: true,
+            checklistItems: {
+              select: {
+                key: true,
+                title: true,
+                category: true,
+                stageCode: true,
+                isRequired: true,
+                isCompleted: true,
+              },
+              orderBy: [{ sortOrder: 'asc' }, { key: 'asc' }],
+            },
+          },
+        },
+      },
+    });
+    if (!operation) {
+      throw new NotFoundException('Kazanılmış iş için aktif operasyon kaydı bulunamadı.');
+    }
+    return operationReadiness(operation, companyId);
   }
 
   async updateOperation(id: string, user: AuthenticatedUser, dto: UpdateProjectOperationDto) {
