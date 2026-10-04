@@ -59,9 +59,14 @@ try {
   const count = await required.count();
   assert.ok(count > 0);
   for (let index = 0; index < count; index++) {
+    const row = required.nth(index);
+    const checkbox = row.getByRole('checkbox');
+    assert.equal(await checkbox.isChecked(), false);
     const saved = page.waitForResponse(response => response.url().includes(`/projects/${fixture.readinessProjectId}/checklist/`) && response.request().method() === 'PATCH');
-    await required.nth(index).getByRole('checkbox').check();
+    // Controlled checkboxes change only after the server confirms persistence.
+    await checkbox.click();
     assert.equal((await saved).status(), 200);
+    await row.locator('input:checked').waitFor();
   }
   await drawer.getByRole('button', { name: 'Operasyon', exact: true }).click();
   await checkRow('DISCOVERY_CHECKLIST').getByText('Tamam', { exact: true }).waitFor();
