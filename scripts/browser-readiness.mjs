@@ -43,7 +43,7 @@ try {
   await operationForm.getByRole('button', { name: 'Vazgeç', exact: true }).click();
   await panel.getByRole('button', { name: 'Sorumlu ata', exact: true }).click();
   assert.equal(await page.evaluate(() => document.activeElement?.getAttribute('name')), 'operationManagerId');
-  await operationForm.getByLabel('Operasyon Sorumlusu', { exact: true }).selectOption(fixture.readinessOwnerId);
+  await operationForm.getByRole('combobox', { name: /^Operasyon Sorumlusu/ }).selectOption(fixture.readinessOwnerId);
   await operationForm.getByLabel('Planlanan Başlangıç', { exact: true }).fill('2030-01-01');
   await operationForm.getByLabel('Planlanan Bitiş', { exact: true }).fill('2030-01-05');
   await operationForm.getByLabel('Sonraki Aksiyon', { exact: true }).fill('Saha hazırlığını kontrol et');
